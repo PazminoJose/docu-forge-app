@@ -1,10 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { CreateDocumentAppShell } from "./@components/CreateDocumentAppShell";
+import { AppShell } from "./@components/AppShell";
 
 export const Route = createFileRoute("/create-document")({
 	component: RouteComponent,
 });
 
 function RouteComponent() {
-	return <CreateDocumentAppShell />;
+	return <AppShell />;
 }

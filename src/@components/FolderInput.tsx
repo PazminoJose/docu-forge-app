@@ -1,26 +1,28 @@
 import { Button, Text } from "@mantine/core";
+import type { UseFormReturnType } from "@mantine/form";
 import { IconFolder } from "@tabler/icons-react";
 import { open } from "@tauri-apps/plugin-dialog";
-import { ReactNode, useState } from "react";
+import type { FormPathValue } from "node_modules/@mantine/form/lib/paths.types";
+import type { ReactNode } from "react";
 
 const ICON_SIZE = 24;
 const MAX_PATH_LENGTH = 400;
 
-interface FolderButtonProps {
+interface FolderButtonProps<T> {
+	form: UseFormReturnType<T>;
+	name: keyof T;
 	children?: ReactNode;
-	handleSelectOutputFolder: (path: string) => void;
 }
 
-export default function FolderButton({ children, handleSelectOutputFolder }: FolderButtonProps) {
-	const [folderPath, setFolderPath] = useState<string | null>(null);
+export default function <T>({ form, name, children }: FolderButtonProps<T>) {
 
 	const handleOnClick = async () => {
 		const folderPath = await open({ directory: true });
 		if (folderPath != null) {
-			setFolderPath(folderPath);
-			handleSelectOutputFolder(folderPath);
+			form.setFieldValue(name as string, folderPath as FormPathValue<T, string>);
 		}
 	};
+
 	return (
 		<div className="flex w-full flex-col justify-center gap-2">
 			<Button
@@ -31,9 +33,14 @@ export default function FolderButton({ children, handleSelectOutputFolder }: Fol
 			>
 				{children}
 			</Button>
-			{folderPath && (
+			{form.getValues()[name] && (
 				<Text size="sm" className="self-center truncate" style={{ maxWidth: `${MAX_PATH_LENGTH}px` }}>
-					{folderPath}
+					{form.getValues()[name] as string}
+				</Text>
+			)}
+			{form.errors[name as string] && (
+				<Text size="sm" color="red" className="self-center">
+					{form.errors[name as string]}
 				</Text>
 			)}
 		</div>
