@@ -1,26 +1,26 @@
 import { create } from "zustand";
 
 interface AppState {
-	dataFile: File | null;
-	setDataFile: (path: File | null) => void;
-	documentTemplate: File | null;
-	setDocumentTemplate: (path: File | null) => void;
-	outputFolderPath: string | null;
-	setOutputFolderPath: (path: string | null) => void;
+	dataFilePath: string;
+	setDataFilePath: (path: string) => void;
+	templateFilePath: string;
+	setTemplateFilePath: (path: string) => void;
+	outputFolderPath: string;
+	setOutputFolderPath: (path: string) => void;
 }
 
 const initialState: AppState = {
-	dataFile: null,
-	setDataFile: () => {},
-	documentTemplate: null,
-	setDocumentTemplate: () => {},
-	outputFolderPath: null,
+	dataFilePath: "",
+	setDataFilePath: () => {},
+	templateFilePath: "",
+	setTemplateFilePath: () => {},
+	outputFolderPath: "",
 	setOutputFolderPath: () => {},
 };
 
 export const useAppState = create<AppState>((set) => ({
 	...initialState,
-	setDataFile: (file) => set({ dataFile: file }),
-	setDocumentTemplate: (file) => set({ documentTemplate: file }),
+	setDataFilePath: (file) => set({ dataFilePath: file }),
+	setTemplateFilePath: (file) => set({ templateFilePath: file }),
 	setOutputFolderPath: (path) => set({ outputFolderPath: path }),
 }));

@@ -12,12 +12,13 @@ const MAX_PATH_LENGTH = 400;
 interface FolderButtonProps<T> {
 	form: UseFormReturnType<T>;
 	name: keyof T;
+	extensions?: string[];
 	children?: ReactNode;
 }
 
-export default function FolderInput<T>({ form, name, children }: FolderButtonProps<T>) {
+export default function FileInput<T>({ form, name, extensions, children }: FolderButtonProps<T>) {
 	const handleOnClick = async () => {
-		const folderPath = await open({ directory: true });
+		const folderPath = await open({ filters: [{ name: "Files", extensions: extensions ?? ["*"] }] });
 		if (folderPath != null) {
 			form.setFieldValue(name as string, folderPath as FormPathValue<T, string>);
 		}
@@ -40,7 +41,7 @@ export default function FolderInput<T>({ form, name, children }: FolderButtonPro
 			)}
 			{form.errors[name as string] && (
 				<Text size="sm" c="red" className="self-center">
-					{form.errors[name as string] as string}
+					{form.errors[name as string]}
 				</Text>
 			)}
 		</div>

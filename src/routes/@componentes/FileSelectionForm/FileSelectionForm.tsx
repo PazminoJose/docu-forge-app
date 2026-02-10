@@ -1,25 +1,23 @@
-import { DropZoneInput } from "@components/DropZoneInput";
+import FileInput from "@components/FileInput";
 import FolderInput from "@components/FolderInput";
 import { Button, Text } from "@mantine/core";
-import { MS_EXCEL_MIME_TYPE, MS_WORD_MIME_TYPE, PDF_MIME_TYPE } from "@mantine/dropzone";
 import { useForm } from "@mantine/form";
 import { useAppState } from "@stores/app.store";
-import { IconArrowBigRightFilled, IconFileFilled, IconFileSpreadsheet } from "@tabler/icons-react";
+import { IconArrowBigRightFilled, IconFileFilled } from "@tabler/icons-react";
 import { useRouter } from "@tanstack/react-router";
-import { invoke } from "@tauri-apps/api/core";
 import { zod4Resolver } from "mantine-form-zod-resolver";
 import { useShallow } from "zustand/react/shallow";
 import { type FileSelectionSchema, fileSelectionSchema } from "./fileSelectionSchema";
 
 export default function FileSelectionForm() {
-	const setDataFile = useAppState((state) => state.setDataFile);
-	const setDocumentTemplate = useAppState((state) => state.setDocumentTemplate);
+	const setDataFilePath = useAppState((state) => state.setDataFilePath);
+	const setTemplateFilePath = useAppState((state) => state.setTemplateFilePath);
 	const setOutputFolderPath = useAppState((state) => state.setOutputFolderPath);
 
 	const appState = useAppState(
 		useShallow((state) => ({
-			dataFile: state.dataFile,
-			documentTemplate: state.documentTemplate,
+			dataFilePath: state.dataFilePath,
+			templateFilePath: state.templateFilePath,
 			outputFolderPath: state.outputFolderPath,
 		})),
 	);
@@ -31,21 +29,13 @@ export default function FileSelectionForm() {
 		initialValues: appState as FileSelectionSchema,
 		validate: zod4Resolver(fileSelectionSchema),
 		onValuesChange: (values) => {
-			setDataFile(values.dataFile);
-			setDocumentTemplate(values.documentTemplate);
+			setDataFilePath(values.dataFilePath);
+			setTemplateFilePath(values.templateFilePath);
 			setOutputFolderPath(values.outputFolderPath);
 		},
 	});
 
 	const handleContinue = async () => {
-		const template = await appState.documentTemplate?.arrayBuffer();
-		const templateExtension = appState.documentTemplate?.name.split(".").pop() || "";
-		const dataFile = await appState.dataFile?.arrayBuffer();
-		const res = await invoke<string[]>("save_doc", {
-			template,
-			templateExtension,
-			dataFile,
-		});
 		router.navigate({
 			to: "/create-document",
 		});
@@ -60,21 +50,12 @@ export default function FileSelectionForm() {
 					Genera documentos en masa a partir de archivos de datos y plantillas.
 				</Text>
 			</div>
-			<DropZoneInput
-				form={form}
-				name="dataFile"
-				idleIcon={<IconFileSpreadsheet size={52} stroke={1.5} color="var(--mantine-color-dimmed)" />}
-				label="Seleccione o arrastre un archivo EXCEL aquí"
-				description="Solo se permite un archivo"
-				accept={MS_EXCEL_MIME_TYPE}
-			/>
-			<DropZoneInput
-				form={form}
-				name="documentTemplate"
-				label="Seleccione o arrastre una plantilla PDF o WORD aquí"
-				description="Solo se permite un archivo"
-				accept={[...MS_WORD_MIME_TYPE, ...PDF_MIME_TYPE]}
-			/>
+			<FileInput form={form} name="dataFilePath" extensions={["xlsx"]}>
+				Seleccione en donde guardar los documentos generados
+			</FileInput>
+			<FileInput form={form} name="templateFilePath" extensions={["pdf", "docx"]}>
+				Seleccione en donde guardar los documentos generados
+			</FileInput>
 			<FolderInput form={form} name="outputFolderPath">
 				Seleccione en donde guardar los documentos generados
 			</FolderInput>
@@ -83,6 +64,7 @@ export default function FileSelectionForm() {
 					Continuar
 				</Button>
 			</div>
+			{JSON.stringify(form.errors)}
 		</form>
 	);
 }
