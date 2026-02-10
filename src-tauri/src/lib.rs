@@ -1,9 +1,9 @@
-mod constants;
-use constants::constants::{DATA_FILE_NAME, TEMPLATE_FILE_NAME};
-use doe::*;
-use std::fs;
-use std::path::PathBuf;
-use tauri::{path::BaseDirectory, AppHandle, Manager};
+use docx_rs::*;
+use regex::Regex;
+use std::collections::HashSet;
+use std::fs::File;
+use std::io::Read;
+use tauri::Manager;
 
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
 #[tauri::command]
@@ -17,57 +17,80 @@ fn edit_docx(file: Vec<u8>) -> String {
 }
 
 #[tauri::command]
-fn save_doc(
-    app: AppHandle,
-    template: Vec<u8>,
-    template_extension: String,
-    data_file: Vec<u8>,
-) -> Result<(String, String), String> {
-    // App data directory
-    let base_dir: PathBuf = app
-        .path()
-        .resolve("docs", BaseDirectory::AppData)
-        .map_err(|e| e.to_string())?;
-
-    // Create directory if it doesn't exist
-    fs::create_dir_all(&base_dir).map_err(|e| e.to_string())?;
-
-    // Paths
-    let template_path = base_dir.join(format!("{}.{}", TEMPLATE_FILE_NAME, template_extension));
-    let data_file_path = base_dir.join(DATA_FILE_NAME);
-
-    // Save files
-    fs::write(&template_path, template).map_err(|e| e.to_string())?;
-    fs::write(&data_file_path, data_file).map_err(|e| e.to_string())?;
-
-    println!("Template guardado en: {}", template_path.display());
-    println!("Data file guardado en: {}", data_file_path.display());
-
-    // Return paths as strings
-    Ok((
-        template_path.to_string_lossy().to_string(),
-        data_file_path.to_string_lossy().to_string(),
-    ))
+fn get_file(file_path: &str) -> Vec<u8> {
+    let mut file = File::open(file_path).expect("No se pudo abrir el archivo");
+    let mut buf = Vec::new();
+    file.read_to_end(&mut buf)
+        .expect("No se pudo leer el archivo");
+    buf
 }
 
 #[tauri::command]
-fn clear_app_data(app: AppHandle) -> Result<(), String> {
-    let base_dir: PathBuf = app
-        .path()
-        .resolve("docs", BaseDirectory::AppData)
-        .map_err(|e| e.to_string())?;
+async fn get_fields(file_path: &str) -> Result<Vec<String>, String> {
+    // Llamamos a una función interna y convertimos el error a String
+    extract_fields(file_path.to_string()).map_err(|e| e.to_string())
+}
 
-    if base_dir.exists() {
-        fs::remove_dir_all(&base_dir).map_err(|e| e.to_string())?;
-        println!("Datos de la app eliminados en: {}", base_dir.display());
-    } else {
-        println!(
-            "No se encontraron datos para eliminar en: {}",
-            base_dir.display()
-        );
+// Esta función mantiene el Box<dyn Error> para facilitar el uso de '?'
+fn extract_fields(path: String) -> Result<Vec<String>, Box<dyn std::error::Error>> {
+    let mut file = File::open(path)?;
+    let mut buf = Vec::new();
+    file.read_to_end(&mut buf)?;
+
+    let doc = read_docx(&buf)?;
+    let re = Regex::new(r"\$\{([^}]+)\}")?;
+    let mut placeholders = HashSet::new();
+
+    // Función auxiliar para extraer texto de un párrafo
+    let extract_paragraph_text = |para: &Paragraph| -> String {
+        let mut full_text = String::new();
+        for run in &para.children {
+            if let ParagraphChild::Run(run_content) = run {
+                for child in &run_content.children {
+                    if let RunChild::Text(t) = child {
+                        full_text.push_str(&t.text);
+                    }
+                }
+            }
+        }
+        full_text
+    };
+
+    // Recorremos los hijos del documento
+    for child in &doc.document.children {
+        match child {
+            // Caso 1: El párrafo está en la raíz del documento
+            DocumentChild::Paragraph(para) => {
+                let texto = extract_paragraph_text(para);
+                for cap in re.captures_iter(&texto) {
+                    placeholders.insert(cap[1].to_string());
+                }
+            }
+            // Caso 2: El elemento es una TABLA
+            DocumentChild::Table(table) => {
+                for row in &table.rows {
+                    if let TableChild::TableRow(table_row) = row {
+                        for cell in &table_row.cells {
+                            if let TableRowChild::TableCell(table_cell) = cell {
+                                // Las celdas contienen a su vez otros elementos (como párrafos)
+                                for cell_child in &table_cell.children {
+                                    if let TableCellContent::Paragraph(para) = cell_child {
+                                        let texto = extract_paragraph_text(para);
+                                        for cap in re.captures_iter(&texto) {
+                                            placeholders.insert(cap[1].to_string());
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            _ => {} // Ignorar otros tipos como secciones o saltos de página
+        }
     }
 
-    Ok(())
+    Ok(placeholders.into_iter().collect())
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -81,10 +104,7 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
         .invoke_handler(tauri::generate_handler![
-            greet,
-            edit_docx,
-            save_doc,
-            clear_app_data
+            greet, edit_docx, get_fields, get_file
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
