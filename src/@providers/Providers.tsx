@@ -1,4 +1,5 @@
 import { MantineProvider } from "@mantine/core";
+import { ModalsProvider } from "@mantine/modals";
 import { ContextMenuProvider } from "mantine-contextmenu";
 import type { ReactNode } from "react";
 
@@ -8,7 +9,9 @@ interface ProvidersProps {
 export default function Providers({ children }: ProvidersProps) {
 	return (
 		<MantineProvider>
-			<ContextMenuProvider>{children}</ContextMenuProvider>
+			<ContextMenuProvider>
+				<ModalsProvider>{children}</ModalsProvider>
+			</ContextMenuProvider>
 		</MantineProvider>
 	);
 }
