@@ -1,27 +1,60 @@
-import { ActionIcon, Button, TextInput, Tooltip } from "@mantine/core";
+import { ActionIcon, TextInput, Tooltip } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { modals } from "@mantine/modals";
 import { useAppState } from "@stores/app.store";
-import { IconTablePlus } from "@tabler/icons-react";
+import { IconTablePlus, IconX } from "@tabler/icons-react";
 import { invoke } from "@tauri-apps/api/core";
+import { callPython } from "@utils/callPython";
+import { parseNumberToColumn } from "@utils/parseNumberToColumn";
 import { zod4Resolver } from "mantine-form-zod-resolver";
 import { useCallback, useEffect, useState } from "react";
 import { docxFieldsSchema, initialDocxFields } from "./docxFieldSchema";
+import SpreadsheetMapper from "./SpreadsheetMapper";
 
 export default function DocxFields() {
 	const [loading, setLoading] = useState(false);
 	const templateFilePath = useAppState((state) => state.templateFilePath);
+	const dataFilePath = useAppState((state) => state.dataFilePath);
 
 	const form = useForm({
 		initialValues: initialDocxFields,
 		validate: zod4Resolver(docxFieldsSchema),
 	});
 
-	const handleMapToColumn = (index: number) => {
-		modals.open({
-			title: "Mapear a columna",
-			children: <div></div>,
-		});
+	const handleMapToColumn = async (index: number) => {
+		try {
+			const encodedPath = encodeURIComponent(dataFilePath || "");
+			const endpoint = `show-data?path=${encodedPath}`;
+			const { data, range } = await callPython<{
+				data: string[][];
+				range: { from: number; to: number };
+			}>("GET", endpoint);
+			modals.open({
+				size: "auto",
+				title: "Mapear a columna",
+				children: (
+					<SpreadsheetMapper
+						data={data}
+						range={range}
+						onColumnSelect={(columnIndex) => {
+							if (columnIndex == null) {
+								form.setFieldValue(`fields.${index}.range`, undefined);
+								form.setFieldValue(`fields.${index}.mappedToColumn`, "");
+							} else {
+								form.setFieldValue(`fields.${index}.mappedToColumn`, parseNumberToColumn(columnIndex));
+							}
+						}}
+					/>
+				),
+			});
+		} catch (error) {
+			console.log({ error });
+		}
+	};
+
+	const handleRemoveMapping = (index: number) => {
+		form.setFieldValue(`fields.${index}.mappedToColumn`, "");
+		form.setFieldValue(`fields.${index}.range`, undefined);
 	};
 
 	// biome-ignore lint/correctness/useExhaustiveDependencies: <explanation>
@@ -47,7 +80,6 @@ export default function DocxFields() {
 
 	return (
 		<form className="mt-2 flex flex-col gap-3">
-			<Button>Add Field</Button>
 			{loading
 				? "Cargando campos..."
 				: form.getValues().fields.map((item, i) => {
@@ -61,18 +93,31 @@ export default function DocxFields() {
 									placeholder="Ingresa el valor o mapea a una columna"
 									{...form.getInputProps(`fields.${i}.value`)}
 								/>
-								<Tooltip
-									label={mappedColumn ? `Columna mapeada: ${mappedColumn}` : "Ninguna columna mapeada"}
-								>
-									<ActionIcon
-										onClick={() => handleMapToColumn(i)}
-										variant={mappedColumn ? "filled" : "outline"}
-										color="green"
-										aria-label="Settings"
+								<div className="flex gap-2">
+									<Tooltip
+										label={mappedColumn ? `Columna mapeada: ${mappedColumn}` : "Ninguna columna mapeada"}
 									>
-										<IconTablePlus className="h-[70%] w-[70%]" stroke={1.5} />
-									</ActionIcon>
-								</Tooltip>
+										<ActionIcon
+											onClick={() => handleMapToColumn(i)}
+											variant={mappedColumn ? "filled" : "outline"}
+											color="green"
+											aria-label="Settings"
+										>
+											<IconTablePlus className="h-[70%] w-[70%]" stroke={1.5} />
+										</ActionIcon>
+									</Tooltip>
+									{mappedColumn && (
+										<Tooltip label="Quitar mapeo">
+											<ActionIcon
+												onClick={() => handleRemoveMapping(i)}
+												color="red"
+												aria-label="Settings"
+											>
+												<IconX className="h-[70%] w-[70%]" stroke={1.5} />
+											</ActionIcon>
+										</Tooltip>
+									)}
+								</div>
 							</div>
 						);
 					})}
