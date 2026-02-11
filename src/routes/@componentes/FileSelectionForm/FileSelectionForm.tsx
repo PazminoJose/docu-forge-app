@@ -64,7 +64,6 @@ export default function FileSelectionForm() {
 					Continuar
 				</Button>
 			</div>
-			{JSON.stringify(form.errors)}
 		</form>
 	);
 }
