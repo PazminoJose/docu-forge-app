@@ -6,6 +6,12 @@ export const docxFieldsSchema = z.object({
 			identifier: z.string(),
 			value: z.string(),
 			mappedToColumn: z.string().optional(),
+			range: z
+				.object({
+					from: z.number().optional(),
+					to: z.number().optional(),
+				})
+				.optional(),
 		}),
 	),
 });
