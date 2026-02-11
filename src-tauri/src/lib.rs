@@ -1,5 +1,7 @@
 use docx_rs::*;
 use regex::Regex;
+use reqwest::Client;
+use serde_json::Value;
 use std::collections::HashSet;
 use std::fs::File;
 use std::io::Read;
@@ -7,8 +9,43 @@ use tauri::Manager;
 
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
 #[tauri::command]
-fn greet(name: &str) -> String {
-    format!("Hello, {}! You've been greeted from Rust!", name)
+async fn py_api(method: String, endpoint: String, payload: Option<Value>) -> Result<Value, String> {
+    let client = Client::new();
+    let url = format!("http://127.0.0.1:8000/{}", endpoint);
+
+    let request = match method.as_str() {
+        "GET" => client.get(&url),
+        "POST" => {
+            let req = client.post(&url);
+            if let Some(data) = &payload {
+                req.json(data)
+            } else {
+                req
+            }
+        }
+        "PUT" => client.put(&url),
+        "DELETE" => client.delete(&url),
+        _ => return Err(format!("Unsupported HTTP method: {}", method)),
+    };
+
+    let request = if let Some(data) = payload {
+        request.json(&data)
+    } else {
+        request
+    };
+
+    let response = request.send().await.map_err(|e| e.to_string())?;
+
+    let status = response.status();
+    let text = response.text().await.map_err(|e| e.to_string())?;
+
+    if !status.is_success() {
+        return Err(format!("Backend error {}: {}", status, text));
+    }
+
+    let json_response = serde_json::from_str(&text).map_err(|e| e.to_string())?;
+
+    Ok(json_response)
 }
 
 #[tauri::command]
@@ -104,7 +141,7 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
         .invoke_handler(tauri::generate_handler![
-            greet, edit_docx, get_fields, get_file
+            py_api, edit_docx, get_fields, get_file
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
