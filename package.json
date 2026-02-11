@@ -29,6 +29,7 @@
     "react": "^19.2.4",
     "react-doc-viewer": "^0.1.15",
     "react-dom": "^19.2.4",
+    "tailwind-merge": "^3.4.0",
     "tailwindcss": "^4.1.18",
     "vite-tsconfig-paths": "^6.1.0",
     "zod": "^4.3.6",
