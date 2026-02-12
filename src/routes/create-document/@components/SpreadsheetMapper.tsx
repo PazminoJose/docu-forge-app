@@ -6,28 +6,52 @@ import { useState } from "react";
 
 export type SpreadsheetData = string[][];
 
+export type Range = {
+	from: number;
+	to: number;
+};
+
+export type Mapping = {
+	column: string | null;
+	range: Range;
+};
+
 interface SpreadsheetMapperProps {
+	initialSelection: Mapping | null;
 	data: SpreadsheetData;
-	onColumnSelect: (columnIndex: number | null) => void;
-	range: {
-		from: number;
-		to: number;
-	};
+	onSave: (savedMapping: Mapping) => void;
+	range: Range;
 }
 
-export default function SpreadsheetMapper({ data, range, onColumnSelect }: SpreadsheetMapperProps) {
-	const [selectedColumn, setSelectedColumn] = useState<number | null>(null);
-	const [from, setFrom] = useState<number>(range.from);
-	const [to, setTo] = useState<number>(range.to);
+export default function SpreadsheetMapper({
+	initialSelection,
+	data,
+	range,
+	onSave,
+}: SpreadsheetMapperProps) {
+	const [selectedColumn, setSelectedColumn] = useState<string | null>(
+		initialSelection ? initialSelection.column : null,
+	);
+	const [from, setFrom] = useState<number>(initialSelection ? initialSelection.range.from : range.from);
+	const [to, setTo] = useState<number>(initialSelection ? initialSelection.range.to : range.to);
 
-	const handleSelectColumn = (columnIndex: number) => {
-		if (selectedColumn === columnIndex) {
+	const handleSelectColumn = (column: string) => {
+		if (selectedColumn === column) {
 			setSelectedColumn(null);
-			onColumnSelect(null);
 		} else {
-			setSelectedColumn(columnIndex);
-			onColumnSelect(columnIndex);
+			setSelectedColumn(column);
 		}
+	};
+
+	const handleSave = () => {
+		onSave({
+			column: selectedColumn,
+			range: {
+				from,
+				to,
+			},
+		});
+		modals.closeAll();
 	};
 
 	const rows = data.map((row, index) => (
@@ -35,7 +59,10 @@ export default function SpreadsheetMapper({ data, range, onColumnSelect }: Sprea
 			{row.map((cell, cellIndex) => (
 				<Table.Td
 					key={`cell-${cellIndex}-${cell}`}
-					className={cn("text-center", selectedColumn === cellIndex && "bg-blue-500/60 text-white")}
+					className={cn(
+						"text-center",
+						selectedColumn === parseNumberToColumn(cellIndex) && "bg-blue-500/60 text-white",
+					)}
 				>
 					{cell}
 				</Table.Td>
@@ -71,10 +98,10 @@ export default function SpreadsheetMapper({ data, range, onColumnSelect }: Sprea
 									<Table.Th
 										className={cn(
 											"min-w-40 max-w-40 cursor-pointer bg-gray-100 text-center",
-											selectedColumn === index && "bg-blue-500 text-white",
+											selectedColumn === parseNumberToColumn(index) && "bg-blue-500 text-white",
 										)}
 										key={parseNumberToColumn(index)}
-										onClick={() => handleSelectColumn(index)}
+										onClick={() => handleSelectColumn(parseNumberToColumn(index))}
 									>
 										{parseNumberToColumn(index)}
 									</Table.Th>
@@ -85,9 +112,11 @@ export default function SpreadsheetMapper({ data, range, onColumnSelect }: Sprea
 				</Table>
 			</div>
 
-			<div className="flex shrink-0 justify-end pt-4">
-				<Button variant="outline">Aceptar</Button>
-				<Button onClick={() => modals.closeAll()} variant="outline">
+			<div className="flex gap-2 shrink-0 justify-end pt-4">
+				<Button color="green" onClick={handleSave}>
+					Guardar
+				</Button>
+				<Button onClick={() => modals.closeAll()} color="red" variant="outline">
 					Cancelar
 				</Button>
 			</div>
