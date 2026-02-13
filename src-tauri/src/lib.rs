@@ -3,16 +3,13 @@ pub use api::py_api;
 pub mod sidecard;
 use docx_rs::*;
 use regex::Regex;
-pub use sidecard::{kill_on_exit, spawn_sidecar};
+pub use sidecard::{kill_sidecar, setup_sidecar, SidecarHandle};
 use std::collections::HashSet;
 use std::fs::File;
 use std::io::Read;
-use std::process::Child;
 use std::sync::{Arc, Mutex};
 use tauri::Manager;
-use tauri::{Emitter, RunEvent};
-use tauri_plugin_shell::process::{CommandChild, CommandEvent};
-use tauri_plugin_shell::ShellExt;
+use tauri::RunEvent;
 
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
 #[tauri::command]
@@ -99,57 +96,27 @@ fn extract_fields(path: String) -> Result<Vec<String>, Box<dyn std::error::Error
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    // Definimos el contenedor con el tipo completo
-    let child_handle: Arc<Mutex<Option<CommandChild>>> = Arc::new(Mutex::new(None));
-    let setup_handle = child_handle.clone();
+    let sidecar_handle: SidecarHandle = Arc::new(Mutex::new(None));
+    let exit_handle = sidecar_handle.clone();
 
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
         .setup(move |app| {
-            let handle = app.handle().clone();
-            let sidecar_command = handle.shell().sidecar("python_backend").unwrap();
-            let (mut rx, child) = sidecar_command.spawn().expect("Failed to spawn sidecar");
-
-            *setup_handle.lock().unwrap() = Some(child);
-
-            tauri::async_runtime::spawn(async move {
-                while let Some(event) = rx.recv().await {
-                    if let CommandEvent::Stdout(line_bytes) = event {
-                        let line = String::from_utf8_lossy(&line_bytes);
-                        handle
-                            .emit("message", format!("{}", line))
-                            .expect("failed to emit event");
-                        println!("[Sanic] {}", line);
-                    }
-                }
-            });
-
             let window = app.get_webview_window("main").unwrap();
             window.center().unwrap();
+            setup_sidecar(app.handle(), sidecar_handle);
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
-            // py_api, edit_docx, get_fields, get_file
+            py_api, edit_docx, get_fields, get_file
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")
         .run(move |_app, event| {
             if matches!(event, RunEvent::Exit | RunEvent::ExitRequested { .. }) {
-                if let Some(mut child) = child_handle.lock().unwrap().take() {
-                    let pid = child.pid();
-                    println!("Cerrando backend (PID: {})...", pid);
-
-                    #[cfg(windows)]
-                    {
-                        let _ = std::process::Command::new("taskkill")
-                            .args(["/F", "/T", "/PID", &pid.to_string()])
-                            .output();
-                    }
-
-                    let _ = child.kill();
-                }
+                kill_sidecar(&exit_handle);
             }
         });
 }
