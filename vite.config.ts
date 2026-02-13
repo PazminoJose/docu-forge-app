@@ -19,7 +19,11 @@ export default defineConfig(async () => ({
 			quoteStyle: "double",
 		}),
 
-		react(),
+		react({
+			babel: {
+				plugins: ["babel-plugin-react-compiler"],
+			},
+		}),
 		tailwindcss(),
 	],
 
