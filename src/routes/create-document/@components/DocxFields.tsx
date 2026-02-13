@@ -1,4 +1,4 @@
-import { ActionIcon, Button, TextInput, Tooltip } from "@mantine/core";
+import { ActionIcon, Button, Checkbox, NumberInput, TextInput, Tooltip } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { modals } from "@mantine/modals";
 import { useAppState } from "@stores/app.store";
@@ -7,13 +7,15 @@ import { invoke } from "@tauri-apps/api/core";
 import { callPython } from "@utils/callPython";
 import { zod4Resolver } from "mantine-form-zod-resolver";
 import { useCallback, useEffect, useState } from "react";
-import { DocxFieldsSchema, docxFieldsSchema, initialDocxFields } from "./docxFieldSchema";
-import SpreadsheetMapper, { type Mapping, type Range } from "./SpreadsheetMapper";
+import { type DocxFieldsSchema, docxFieldsSchema, initialDocxFields } from "./docxFieldSchema";
+import SpreadsheetMapper, { type Mapping } from "./SpreadsheetMapper";
 
 export default function DocxFields() {
 	const [loading, setLoading] = useState(false);
+	const [loadingSubmit, setLoadingSubmit] = useState(false);
 	const templateFilePath = useAppState((state) => state.templateFilePath);
 	const dataFilePath = useAppState((state) => state.dataFilePath);
+	const outputFolderPath = useAppState((state) => state.outputFolderPath);
 
 	const form = useForm({
 		initialValues: initialDocxFields,
@@ -26,15 +28,14 @@ export default function DocxFields() {
 			const endpoint = `show-data?path=${encodedPath}`;
 			const { data, range } = await callPython<{
 				data: string[][];
-				range: Range;
+				range: { from: number; to: number };
 			}>("GET", endpoint);
+			form.setFieldValue("range", range);
 			const initialMappedToColumn = form.getValues().fields[index].mappedToColumn;
-			const initialRange = form.getValues().fields[index].range;
 			let initialSelection: Mapping | null = null;
-			if (initialMappedToColumn && initialRange && initialRange.from && initialRange.to) {
+			if (initialMappedToColumn) {
 				initialSelection = {
 					column: initialMappedToColumn,
-					range: initialRange as Range,
 				};
 			}
 			modals.open({
@@ -44,21 +45,7 @@ export default function DocxFields() {
 					<SpreadsheetMapper
 						initialSelection={initialSelection}
 						data={data}
-						range={range}
-						onSave={(saved) => {
-							const { column, range } = saved;
-							if (column == null) {
-								form.setFieldValue(`fields.${index}.range`, undefined);
-								form.setFieldValue(`fields.${index}.mappedToColumn`, "");
-							} else {
-								form.setFieldValue(`fields.${index}.mappedToColumn`, column);
-								form.setFieldValue(`fields.${index}.range`, range);
-								form.setFieldValue(
-									`fields.${index}.value`,
-									`${column}${range.from}:${column}${range.to}`,
-								);
-							}
-						}}
+						onSave={(mapping) => handleSaveMapping(index, mapping)}
 					/>
 				),
 			});
@@ -67,17 +54,45 @@ export default function DocxFields() {
 		}
 	};
 
+	const handleSaveMapping = (index: number, mapping: Mapping) => {
+		const { column } = mapping;
+		if (column == null) {
+			form.setFieldValue(`fields.${index}.mappedToColumn`, "");
+		} else {
+			form.setFieldValue(`fields.${index}.mappedToColumn`, column);
+		}
+	};
+
 	const handleRemoveMapping = (index: number) => {
 		form.setFieldValue(`fields.${index}.mappedToColumn`, "");
 		form.setFieldValue(`fields.${index}.range`, undefined);
+		form.setFieldValue(`fields.${index}.skipHeader`, false);
+		form.setFieldValue(`fields.${index}.value`, `$\{${form.getValues().fields[index].identifier}}`);
+	};
+
+	const handleCheckUseAsName = (index: number, value: boolean) => {
+		const fields = form.getValues().fields;
+		fields.forEach((_, i) => {
+			if (i === index) {
+				form.setFieldValue(`fields.${i}.useAsName`, value);
+			} else {
+				form.setFieldValue(`fields.${i}.useAsName`, false);
+			}
+		});
 	};
 
 	const handleSubmit = async (values: DocxFieldsSchema) => {
-		console.log(values);
+		setLoadingSubmit(true);
+		await callPython("POST", "process-template-docx", {
+			docx_path: templateFilePath,
+			xlsx_path: dataFilePath,
+			output_folder: outputFolderPath,
+			fields: values.fields,
+		});
 	};
 
 	// biome-ignore lint/correctness/useExhaustiveDependencies: <explanation>
-	const getVariables = useCallback(async () => {
+	const getFields = useCallback(async () => {
 		if (templateFilePath) {
 			setLoading(true);
 			const res = await invoke<string[]>("get_fields", {
@@ -86,7 +101,12 @@ export default function DocxFields() {
 			if (res && res.length > 0) {
 				form.setFieldValue(
 					"fields",
-					res.map((variable) => ({ identifier: variable, value: `$\{${variable}}` })),
+					res.map((variable) => ({
+						identifier: variable,
+						value: `$\{${variable}}`,
+						skipHeader: false,
+						useAsName: false,
+					})),
 				);
 			}
 			setLoading(false);
@@ -94,20 +114,20 @@ export default function DocxFields() {
 	}, [templateFilePath]);
 
 	useEffect(() => {
-		getVariables();
-	}, [getVariables]);
+		getFields();
+	}, [getFields]);
 
 	return (
 		<form
 			className="mt-2 flex h-full flex-col justify-between gap-3"
 			onSubmit={form.onSubmit(handleSubmit)}
 		>
-			<div>
+			<div className="flex flex-col gap-2">
 				{loading
 					? "Cargando campos..."
 					: form.getValues().fields.map((item, i) => {
 							const mappedColumn = form.getValues().fields[i].mappedToColumn;
-							const range = form.getValues().fields[i].range;
+							const range = form.getValues().range;
 							const identifier = form.getValues().fields[i].identifier;
 							return (
 								<div key={item.identifier} className="flex flex-col gap-1">
@@ -116,8 +136,9 @@ export default function DocxFields() {
 										label={`Campo ${identifier}`}
 										placeholder="Ingresa el valor o mapea a una columna"
 										{...form.getInputProps(`fields.${i}.value`)}
+										error={form.getInputProps(`fields.${i}.range`).error}
 									/>
-									<div className="flex gap-2">
+									<div className="flex items-center gap-2">
 										<Tooltip
 											label={
 												mappedColumn
@@ -145,12 +166,33 @@ export default function DocxFields() {
 												</ActionIcon>
 											</Tooltip>
 										)}
+										<Checkbox
+											label="Usar como nombre"
+											{...form.getInputProps(`fields.${i}.useAsName`, { type: "checkbox" })}
+											onChange={(event) => handleCheckUseAsName(i, event.currentTarget.checked)}
+										/>
 									</div>
 								</div>
 							);
 						})}
+				<div className="flex gap-2">
+					<NumberInput
+						label="Desde"
+						placeholder="Número de fila desde donde tomar los datos"
+						{...form.getInputProps("range.from")}
+					/>
+					<NumberInput
+						label="Hasta"
+						placeholder="Número de fila hasta donde tomar los datos"
+						{...form.getInputProps("range.to")}
+					/>
+				</div>
+				<Checkbox
+					label="Saltar primera fila (header)"
+					{...form.getInputProps("skipHeader", { type: "checkbox" })}
+				/>
 			</div>
-			<Button type="submit" leftSection={<IconFileFilled />}>
+			<Button type="submit" leftSection={<IconFileFilled />} loading={loadingSubmit}>
 				Generar
 			</Button>
 		</form>

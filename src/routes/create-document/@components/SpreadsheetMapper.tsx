@@ -1,4 +1,4 @@
-import { Button, NumberInput, Table } from "@mantine/core";
+import { Button, Table } from "@mantine/core";
 import { modals } from "@mantine/modals";
 import { cn } from "@utils/cn";
 import { parseNumberToColumn } from "@utils/parseNumberToColumn";
@@ -6,34 +6,20 @@ import { useState } from "react";
 
 export type SpreadsheetData = string[][];
 
-export type Range = {
-	from: number;
-	to: number;
-};
-
 export type Mapping = {
 	column: string | null;
-	range: Range;
 };
 
 interface SpreadsheetMapperProps {
 	initialSelection: Mapping | null;
 	data: SpreadsheetData;
 	onSave: (savedMapping: Mapping) => void;
-	range: Range;
 }
 
-export default function SpreadsheetMapper({
-	initialSelection,
-	data,
-	range,
-	onSave,
-}: SpreadsheetMapperProps) {
+export default function SpreadsheetMapper({ initialSelection, data, onSave }: SpreadsheetMapperProps) {
 	const [selectedColumn, setSelectedColumn] = useState<string | null>(
 		initialSelection ? initialSelection.column : null,
 	);
-	const [from, setFrom] = useState<number>(initialSelection ? initialSelection.range.from : range.from);
-	const [to, setTo] = useState<number>(initialSelection ? initialSelection.range.to : range.to);
 
 	const handleSelectColumn = (column: string) => {
 		if (selectedColumn === column) {
@@ -46,10 +32,6 @@ export default function SpreadsheetMapper({
 	const handleSave = () => {
 		onSave({
 			column: selectedColumn,
-			range: {
-				from,
-				to,
-			},
 		});
 		modals.closeAll();
 	};
@@ -72,22 +54,6 @@ export default function SpreadsheetMapper({
 
 	return (
 		<div className="flex h-full max-h-[75vh] flex-col">
-			<div className="flex shrink-0 gap-2 pb-4">
-				<NumberInput
-					placeholder="Desde"
-					label="Desde"
-					min={1}
-					value={from}
-					onChange={(value) => setFrom(parseInt(value.toString()))}
-				/>
-				<NumberInput
-					placeholder="Hasta"
-					label="Hasta"
-					min={1}
-					value={to}
-					onChange={(value) => setTo(parseInt(value.toString()))}
-				/>
-			</div>
 			<div className="flex flex-1 justify-center overflow-auto">
 				<Table withColumnBorders withRowBorders withTableBorder stickyHeader className="w-fit">
 					<Table.Thead>
