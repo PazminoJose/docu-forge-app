@@ -1,21 +1,33 @@
-import { ActionIcon, Button, Checkbox, NumberInput, TextInput, Tooltip } from "@mantine/core";
+import {
+	ActionIcon,
+	Button,
+	Checkbox,
+	Loader,
+	NumberInput,
+	Progress,
+	TextInput,
+	Tooltip,
+} from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { modals } from "@mantine/modals";
 import { useAppState } from "@stores/app.store";
-import { IconFileFilled, IconTablePlus, IconX } from "@tabler/icons-react";
+import { IconFileFilled, IconFolderOpen, IconTablePlus, IconX } from "@tabler/icons-react";
 import { invoke } from "@tauri-apps/api/core";
+import { openPath } from "@tauri-apps/plugin-opener";
 import { callPython } from "@utils/callPython";
 import { zod4Resolver } from "mantine-form-zod-resolver";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { type DocxFieldsSchema, docxFieldsSchema, initialDocxFields } from "./docxFieldSchema";
 import SpreadsheetMapper, { type Mapping } from "./SpreadsheetMapper";
 
 export default function DocxFields() {
+	const [progress, setProgress] = useState(0);
 	const [loading, setLoading] = useState(false);
 	const [loadingSubmit, setLoadingSubmit] = useState(false);
 	const templateFilePath = useAppState((state) => state.templateFilePath);
 	const dataFilePath = useAppState((state) => state.dataFilePath);
 	const outputFolderPath = useAppState((state) => state.outputFolderPath);
+	const socketRef = useRef<WebSocket | null>(null);
 
 	const form = useForm({
 		initialValues: initialDocxFields,
@@ -25,12 +37,11 @@ export default function DocxFields() {
 	const handleMapToColumn = async (index: number) => {
 		try {
 			const encodedPath = encodeURIComponent(dataFilePath || "");
-			const endpoint = `show-data?path=${encodedPath}`;
-			const { data, range } = await callPython<{
+			const endpoint = `get-data?path=${encodedPath}`;
+			const { data } = await callPython<{
 				data: string[][];
-				range: { from: number; to: number };
 			}>("GET", endpoint);
-			form.setFieldValue("range", range);
+			// form.setFieldValue("range", range);
 			const initialMappedToColumn = form.getValues().fields[index].mappedToColumn;
 			let initialSelection: Mapping | null = null;
 			if (initialMappedToColumn) {
@@ -81,15 +92,53 @@ export default function DocxFields() {
 		});
 	};
 
-	const handleSubmit = async (values: DocxFieldsSchema) => {
-		setLoadingSubmit(true);
-		await callPython("POST", "process-template-docx", {
-			docx_path: templateFilePath,
-			xlsx_path: dataFilePath,
-			output_folder: outputFolderPath,
-			fields: values.fields,
-		});
+	const handleOpenOutputFolder = async () => {
+		console.log({ outputFolderPath });
+
+		await openPath(outputFolderPath);
 	};
+
+	const handleSubmit = async (values: DocxFieldsSchema) => {
+		console.log({ values });
+		socketRef.current = new WebSocket("ws://localhost:8000/process-docx");
+		if (socketRef.current != null) {
+			socketRef.current.onopen = () => {
+				socketRef.current?.send(
+					JSON.stringify({
+						action: "start",
+						docx_path: templateFilePath,
+						xlsx_path: dataFilePath,
+						output_folder: outputFolderPath,
+						skip_header: values.skipHeader,
+						range: values.range,
+						fields: values.fields,
+					}),
+				);
+				setLoadingSubmit(true);
+			};
+
+			socketRef.current.onmessage = (event) => {
+				const data = JSON.parse(event.data);
+				if (data.status === "progress") {
+					setProgress(data.percent);
+				} else if (data.status === "completed") {
+					console.log("¡Terminado!");
+					setLoadingSubmit(false);
+					socketRef.current?.close();
+				} else if (data.status === "cancelled") {
+					console.warn("Proceso cancelado por el usuario");
+				}
+			};
+		}
+	};
+
+	function cancelJob() {
+		if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
+			setProgress(0);
+			setLoadingSubmit(false);
+			socketRef.current.close();
+		}
+	}
 
 	// biome-ignore lint/correctness/useExhaustiveDependencies: <explanation>
 	const getFields = useCallback(async () => {
@@ -109,6 +158,12 @@ export default function DocxFields() {
 					})),
 				);
 			}
+			const encodedPath = encodeURIComponent(dataFilePath || "");
+			const endpoint = `get-range?path=${encodedPath}`;
+			const { range } = await callPython<{
+				range: { from: number; to: number };
+			}>("GET", endpoint);
+			form.setFieldValue("range", range);
 			setLoading(false);
 		}
 	}, [templateFilePath]);
@@ -122,10 +177,12 @@ export default function DocxFields() {
 			className="mt-2 flex h-full flex-col justify-between gap-3"
 			onSubmit={form.onSubmit(handleSubmit)}
 		>
-			<div className="flex flex-col gap-2">
-				{loading
-					? "Cargando campos..."
-					: form.getValues().fields.map((item, i) => {
+			<div className="flex h-full flex-col gap-2">
+				{loading ? (
+					<Loader size="lg" className="m-auto" />
+				) : (
+					<>
+						{form.getValues().fields.map((item, i) => {
 							const mappedColumn = form.getValues().fields[i].mappedToColumn;
 							const range = form.getValues().range;
 							const identifier = form.getValues().fields[i].identifier;
@@ -136,7 +193,7 @@ export default function DocxFields() {
 										label={`Campo ${identifier}`}
 										placeholder="Ingresa el valor o mapea a una columna"
 										{...form.getInputProps(`fields.${i}.value`)}
-										error={form.getInputProps(`fields.${i}.range`).error}
+										error={form.getInputProps(`fields.${i}.mappedToColumn`).error}
 									/>
 									<div className="flex items-center gap-2">
 										<Tooltip
@@ -175,26 +232,39 @@ export default function DocxFields() {
 								</div>
 							);
 						})}
-				<div className="flex gap-2">
-					<NumberInput
-						label="Desde"
-						placeholder="Número de fila desde donde tomar los datos"
-						{...form.getInputProps("range.from")}
-					/>
-					<NumberInput
-						label="Hasta"
-						placeholder="Número de fila hasta donde tomar los datos"
-						{...form.getInputProps("range.to")}
-					/>
-				</div>
-				<Checkbox
-					label="Saltar primera fila (header)"
-					{...form.getInputProps("skipHeader", { type: "checkbox" })}
-				/>
+						<div className="flex gap-2">
+							<NumberInput
+								label="Desde"
+								placeholder="Número de fila desde donde tomar los datos"
+								{...form.getInputProps("range.from")}
+							/>
+							<NumberInput
+								label="Hasta"
+								placeholder="Número de fila hasta donde tomar los datos"
+								{...form.getInputProps("range.to")}
+							/>
+						</div>
+						<Checkbox
+							label="Saltar primera fila (header)"
+							{...form.getInputProps("skipHeader", { type: "checkbox" })}
+						/>
+						<Button leftSection={<IconFolderOpen />} onClick={handleOpenOutputFolder}>
+							Abrir Carpeta
+						</Button>
+					</>
+				)}
 			</div>
-			<Button type="submit" leftSection={<IconFileFilled />} loading={loadingSubmit}>
-				Generar
-			</Button>
+			<div className="flex flex-col gap-2">
+				{loadingSubmit && <Progress value={progress} />}
+				<Button type="submit" leftSection={<IconFileFilled />} loading={loadingSubmit}>
+					Generar
+				</Button>
+				{loadingSubmit && (
+					<Button color="red" onClick={cancelJob}>
+						Cancelar
+					</Button>
+				)}
+			</div>
 		</form>
 	);
 }

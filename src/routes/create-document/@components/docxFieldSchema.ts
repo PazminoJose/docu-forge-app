@@ -6,7 +6,12 @@ export const docxFieldsSchema = z
 			z.object({
 				identifier: z.string(),
 				value: z.string(),
-				mappedToColumn: z.string().optional(),
+				mappedToColumn: z
+					.string()
+					.optional()
+					.refine((val) => val !== "", {
+						message: "El campo mappedToColumn no puede ser una cadena vacía",
+					}),
 				useAsName: z.boolean(),
 			}),
 		),
@@ -19,11 +24,11 @@ export const docxFieldsSchema = z
 		skipHeader: z.boolean(),
 	})
 	.superRefine((values, ctx) => {
-		const { range } = values;
+		const { range, fields } = values;
 		if (!range) {
 			ctx.addIssue({
 				code: "custom",
-				message: "No hay una columna mapeada",
+				message: "No hay un rango de columnas definido",
 				path: ["range"],
 			});
 		} else if (range.from >= range.to) {
@@ -33,6 +38,15 @@ export const docxFieldsSchema = z
 				path: ["range"],
 			});
 		}
+		fields.forEach((field, index) => {
+			if (!field.mappedToColumn) {
+				ctx.addIssue({
+					code: "custom",
+					message: "Ninguna columna seleccionada para este campo",
+					path: ["fields", index, "mappedToColumn"],
+				});
+			}
+		});
 	});
 
 export type DocxFieldsSchema = z.infer<typeof docxFieldsSchema>;
