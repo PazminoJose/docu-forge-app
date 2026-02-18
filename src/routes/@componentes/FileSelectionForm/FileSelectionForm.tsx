@@ -42,7 +42,7 @@ export default function FileSelectionForm() {
 	};
 
 	return (
-		<form className="flex h-full flex-col gap-4 py-4" onSubmit={form.onSubmit(handleContinue)}>
+		<form className="flex h-full flex-col gap-4  items-center justify-center" onSubmit={form.onSubmit(handleContinue)}>
 			<div className="flex flex-col">
 				<IconFileFilled size={64} className="mx-auto text-primary-500" />
 				<Text className="text-center font-semibold text-2xl">Generador de documentos</Text>
@@ -51,10 +51,10 @@ export default function FileSelectionForm() {
 				</Text>
 			</div>
 			<FileInput form={form} name="dataFilePath" extensions={["xlsx"]}>
-				Seleccione en donde guardar los documentos generados
+				Seleccione el archivo de datos (Excel)
 			</FileInput>
 			<FileInput form={form} name="templateFilePath" extensions={["pdf", "docx"]}>
-				Seleccione en donde guardar los documentos generados
+				Seleccione la plantilla de documento (DOCX)
 			</FileInput>
 			<FolderInput form={form} name="outputFolderPath">
 				Seleccione en donde guardar los documentos generados
