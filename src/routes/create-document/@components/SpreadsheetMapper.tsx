@@ -54,8 +54,8 @@ export default function SpreadsheetMapper({ initialSelection, data, onSave }: Sp
 
 	return (
 		<div className="flex h-full max-h-[75vh] flex-col">
-			<div className="flex flex-1 justify-center overflow-auto">
-				<Table withColumnBorders withRowBorders withTableBorder stickyHeader className="w-fit">
+			<div className="flex-1 overflow-auto">
+				<Table withColumnBorders withRowBorders withTableBorder stickyHeader>
 					<Table.Thead>
 						<Table.Tr>
 							{data &&
@@ -78,7 +78,7 @@ export default function SpreadsheetMapper({ initialSelection, data, onSave }: Sp
 				</Table>
 			</div>
 
-			<div className="flex gap-2 shrink-0 justify-end pt-4">
+			<div className="flex shrink-0 justify-end gap-2 pt-4">
 				<Button color="green" onClick={handleSave}>
 					Guardar
 				</Button>
