@@ -106,7 +106,10 @@ pub fn run() {
         .setup(move |app| {
             let window = app.get_webview_window("main").unwrap();
             window.center().unwrap();
-            setup_sidecar(app.handle(), sidecar_handle);
+            let app_handler = app.handle().clone();
+            tauri::async_runtime::spawn(async move {
+                setup_sidecar(&app_handler, sidecar_handle);
+            });
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
