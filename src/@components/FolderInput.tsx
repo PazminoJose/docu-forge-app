@@ -1,6 +1,7 @@
 import { Button, Text } from "@mantine/core";
 import type { UseFormReturnType } from "@mantine/form";
 import { IconFolder } from "@tabler/icons-react";
+import { appDataDir } from "@tauri-apps/api/path";
 import { open } from "@tauri-apps/plugin-dialog";
 import { formatDisplayPath } from "@utils/formatDisplayPath";
 import type { FormPathValue } from "node_modules/@mantine/form/lib/paths.types";
@@ -17,7 +18,11 @@ interface FolderButtonProps<T> {
 
 export default function FolderInput<T>({ form, name, children }: FolderButtonProps<T>) {
 	const handleOnClick = async () => {
-		const folderPath = await open({ directory: true });
+		const folderPath = await open({
+			directory: true,
+			title: "Selecciona una carpeta",
+			defaultPath: await appDataDir(),
+		});
 		if (folderPath != null) {
 			form.setFieldValue(name as string, folderPath as FormPathValue<T, string>);
 		}
