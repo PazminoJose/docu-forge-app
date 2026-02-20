@@ -10,13 +10,9 @@ use std::io::Read;
 use std::sync::{Arc, Mutex};
 use tauri::Manager;
 use tauri::RunEvent;
+use tauri_plugin_dialog::DialogExt;
 
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
-#[tauri::command]
-fn edit_docx(file: Vec<u8>) -> String {
-    format!("Archivo .docx recibido con {} bytes", file.len())
-}
-
 #[tauri::command]
 fn get_file(file_path: &str) -> Vec<u8> {
     let mut file = File::open(file_path).expect("No se pudo abrir el archivo");
@@ -107,14 +103,14 @@ pub fn run() {
             let window = app.get_webview_window("main").unwrap();
             window.center().unwrap();
             let app_handler = app.handle().clone();
+            let sidecar_init_handle = sidecar_handle.clone();
             tauri::async_runtime::spawn(async move {
-                setup_sidecar(&app_handler, sidecar_handle);
+                tokio::time::sleep(std::time::Duration::from_millis(200)).await;
+                setup_sidecar(&app_handler, sidecar_init_handle);
             });
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![
-            py_api, edit_docx, get_fields, get_file
-        ])
+        .invoke_handler(tauri::generate_handler![py_api, get_fields, get_file])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")
         .run(move |_app, event| {
