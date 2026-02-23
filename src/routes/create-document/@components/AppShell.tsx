@@ -1,7 +1,7 @@
 import { ActionIcon, AppShell as MantineAppShell } from "@mantine/core";
 import { IconArrowBigLeftFilled } from "@tabler/icons-react";
 import { Outlet, useRouter } from "@tanstack/react-router";
-import DocxFields from "./DocxFields";
+import DocxFields from "./DocxFields/DocxFields";
 
 export function AppShell() {
 	const router = useRouter();

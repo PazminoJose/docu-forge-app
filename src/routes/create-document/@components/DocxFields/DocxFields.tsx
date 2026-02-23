@@ -17,8 +17,8 @@ import { openPath } from "@tauri-apps/plugin-opener";
 import { callPython } from "@utils/callPython";
 import { zod4Resolver } from "mantine-form-zod-resolver";
 import { useCallback, useEffect, useRef, useState } from "react";
+import SpreadsheetMapper, { type Mapping } from "../SpreadsheetMapper";
 import { type DocxFieldsSchema, docxFieldsSchema, initialDocxFields } from "./docxFieldSchema";
-import SpreadsheetMapper, { type Mapping } from "./SpreadsheetMapper";
 
 export default function DocxFields() {
 	const [progress, setProgress] = useState(0);
