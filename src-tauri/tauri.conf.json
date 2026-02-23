@@ -40,7 +40,7 @@
 	},
 	"plugins": {
 		"updater": {
-			"pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDNDODg5M0FDOTQ2N0QzMTEKUldRUjAyZVVySk9JUE1vNDZmaXB4QVRic0MxWkxmWmVzeEdnS3MxNE1lS2Y0SmR6SnJ0V2tCencK",
+			"pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDJENDM3Q0E5QUE0NkRGRDkKUldUWjMwYXFxWHhETFh2QXAyelVXaGlERXllRXc1VDFWamhYQ0xmTGJYT2M0Y1JqSXU4Q1FIVUQK",
 			"endpoints": ["https://github.com/PazminoJose/docu-forge-app/releases/latest/download/latest.json"]
 		}
 	}
