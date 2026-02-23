@@ -4,9 +4,11 @@
 	"version": "0.1.0",
 	"type": "module",
 	"scripts": {
-		"dev": "vite",
+		"dev": "pnpm run tauri dev",
+		"dev:py": "cd src-backend && uv run watchfiles \"uv run main.py\" .",
 		"build": "tsc && vite build",
-		"build:app": "uv --directory src-backend run pyinstaller run.py --onedir --name python_backend --contents-directory internal --clean --log-level=DEBUG --collect-all sanic --collect-all sanic_routing --collect-all tracerite --collect-all pandas --collect-all openpyxl --collect-all numpy --hidden-import=multiprocessing && powershell -ExecutionPolicy Bypass -File ./scripts/copy_binary.ps1 && pnpm tauri build",
+		"build:py": "uv --directory src-backend run pyinstaller run.py --onedir --name python_backend --contents-directory internal --clean --log-level=DEBUG --collect-all sanic --collect-all sanic_routing --collect-all tracerite --collect-all pandas --collect-all openpyxl --collect-all numpy --hidden-import=multiprocessing",
+		"build:app": "pnpm run build:py && powershell -ExecutionPolicy Bypass -File ./scripts/copy_binary.ps1 && pnpm tauri build",
 		"preview": "vite preview",
 		"tauri": "tauri"
 	},
