@@ -1,9 +1,10 @@
 pub mod api;
 pub use api::py_api;
 pub mod sidecard;
+pub use sidecard::{kill_sidecar, setup_sidecar, SidecarHandle};
+pub mod updater;
 use docx_rs::*;
 use regex::Regex;
-pub use sidecard::{kill_sidecar, setup_sidecar, SidecarHandle};
 use std::collections::HashSet;
 use std::fs::File;
 use std::io::Read;
@@ -11,6 +12,7 @@ use std::sync::{Arc, Mutex};
 use tauri::Manager;
 use tauri::RunEvent;
 use tauri_plugin_dialog::DialogExt;
+pub use updater::update;
 
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
 #[tauri::command]
@@ -96,6 +98,7 @@ pub fn run() {
     let exit_handle = sidecar_handle.clone();
 
     tauri::Builder::default()
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
@@ -107,6 +110,7 @@ pub fn run() {
             tauri::async_runtime::spawn(async move {
                 tokio::time::sleep(std::time::Duration::from_millis(200)).await;
                 setup_sidecar(&app_handler, sidecar_init_handle);
+                update(app_handler).await.unwrap();
             });
             Ok(())
         })
