@@ -1,23 +1,24 @@
 import { Button, Text } from "@mantine/core";
-import type { UseFormReturnType } from "@mantine/form";
 import { IconFolder } from "@tabler/icons-react";
 import { appDataDir } from "@tauri-apps/api/path";
 import { open } from "@tauri-apps/plugin-dialog";
 import { formatDisplayPath } from "@utils/formatDisplayPath";
-import type { FormPathValue } from "node_modules/@mantine/form/lib/paths.types";
-import type { ReactNode } from "react";
+import { type ReactNode } from "react";
 
 const ICON_SIZE = 24;
 const MAX_PATH_LENGTH = 400;
 
-interface FolderButtonProps<T> {
-	form: UseFormReturnType<T>;
-	name: keyof T;
+interface FolderButtonProps {
 	extensions?: string[];
 	children?: ReactNode;
+	value?: string;
+	error?: string;
+	onChange?: (value: string) => void;
 }
 
-export default function FileInput<T>({ form, name, extensions, children }: FolderButtonProps<T>) {
+export default function FileInput({ extensions, value, error, onChange, children }: FolderButtonProps) {
+	console.log(value);
+
 	const handleOnClick = async () => {
 		const folderPath = await open({
 			filters: [{ name: "Files", extensions: extensions ?? ["*"] }],
@@ -25,7 +26,7 @@ export default function FileInput<T>({ form, name, extensions, children }: Folde
 			defaultPath: await appDataDir(),
 		});
 		if (folderPath != null) {
-			form.setFieldValue(name as string, folderPath as FormPathValue<T, string>);
+			onChange?.(folderPath);
 		}
 	};
 
@@ -39,14 +40,14 @@ export default function FileInput<T>({ form, name, extensions, children }: Folde
 			>
 				{children}
 			</Button>
-			{form.getValues()[name] && (
+			{value && (
 				<Text size="sm" className="self-center truncate" style={{ maxWidth: `${MAX_PATH_LENGTH}px` }}>
-					{formatDisplayPath(form.getValues()[name] as string)}
+					{formatDisplayPath(value)}
 				</Text>
 			)}
-			{form.errors[name as string] && (
+			{error && (
 				<Text size="sm" c="red" className="self-center">
-					{form.errors[name as string]}
+					{error}
 				</Text>
 			)}
 		</div>
