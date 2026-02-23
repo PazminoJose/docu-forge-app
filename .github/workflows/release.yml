@@ -21,7 +21,7 @@ jobs:
         uses: pnpm/action-setup@v3
         with:
           version: latest
-          
+
       - name: Install Rust stable
         uses: dtolnay/rust-toolchain@stable
 
@@ -33,6 +33,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PASSWORD: ""
         with:
           tagName: v__VERSION__
           releaseName: "DocuForge v__VERSION__"
