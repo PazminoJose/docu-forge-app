@@ -27,3 +27,6 @@ dist-ssr
 *.docx
 *.pdf
 *.env
+
+#Tauri
+.tauri
