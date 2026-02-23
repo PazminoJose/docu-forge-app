@@ -2,18 +2,13 @@ name: Release
 on:
   push:
     tags:
-      - 'v*' 
+      - 'v*'
 
 jobs:
   publish:
     permissions:
       contents: write
-    strategy:
-      fail-fast: false
-      matrix:
-        platform: [windows-latest]
-
-    runs-on: ${{ matrix.platform }}
+    runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
 
@@ -27,32 +22,16 @@ jobs:
         with:
           version: latest
 
-      - name: Setup Rust
-        uses: dtolnay/rust-toolchain@stable
-
-      - name: Setup Python and uv
-        uses: astral-sh/setup-uv@v3
-        with:
-          version: "latest"
-
-      - name: Install Frontend Dependencies
+      - name: Install Dependencies
         run: pnpm install
 
-      - name: Build Python Backend and Prepare Binaries
-        # Aquí ejecutamos tu proceso: PyInstaller -> Script de copia
-        run: |
-          uv --directory src-backend run pyinstaller run.py --onedir --name python_backend --contents-directory internal --clean --collect-all sanic --collect-all sanic_routing --collect-all tracerite --collect-all pandas --collect-all openpyxl --collect-all numpy --hidden-import=multiprocessing
-          powershell -ExecutionPolicy Bypass -File ./scripts/copy_binary.ps1
-
-      - name: Build Tauri App
+      - name: Build and Publish Tauri App
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
-          TAURI_SIGNING_PASSWORD: ${{ secrets.TAURI_SIGNING_PASSWORD }}
         with:
-          tagName: v__VERSION__ # Se auto-completa con la versión del tauri.conf.json
+          tagName: v__VERSION__
           releaseName: "DocuForge v__VERSION__"
-          releaseBody: "Actualización automática de DocuForge."
           releaseDraft: true
           prerelease: false
