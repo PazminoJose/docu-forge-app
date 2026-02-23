@@ -25,7 +25,6 @@ export default function FileSelectionForm() {
 	const router = useRouter();
 
 	const form = useForm({
-		mode: "uncontrolled",
 		initialValues: appState as FileSelectionSchema,
 		validate: zod4Resolver(fileSelectionSchema),
 		onValuesChange: (values) => {
@@ -53,13 +52,13 @@ export default function FileSelectionForm() {
 					Genera documentos en masa a partir de archivos de datos y plantillas.
 				</Text>
 			</div>
-			<FileInput form={form} name="dataFilePath" extensions={["xlsx"]}>
+			<FileInput {...form.getInputProps("dataFilePath")} extensions={["xlsx"]}>
 				Seleccione el archivo de datos (Excel)
 			</FileInput>
-			<FileInput form={form} name="templateFilePath" extensions={["pdf", "docx"]}>
+			<FileInput {...form.getInputProps("templateFilePath")} extensions={["pdf", "docx"]}>
 				Seleccione la plantilla de documento (DOCX)
 			</FileInput>
-			<FolderInput form={form} name="outputFolderPath">
+			<FolderInput {...form.getInputProps("outputFolderPath")}>
 				Seleccione en donde guardar los documentos generados
 			</FolderInput>
 			<div className="mx-auto">
