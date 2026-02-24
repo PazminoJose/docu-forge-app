@@ -17,8 +17,6 @@ interface FolderButtonProps {
 }
 
 export default function FileInput({ extensions, value, error, onChange, children }: FolderButtonProps) {
-	console.log(value);
-
 	const handleOnClick = async () => {
 		const folderPath = await open({
 			filters: [{ name: "Files", extensions: extensions ?? ["*"] }],
