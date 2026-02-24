@@ -4,6 +4,7 @@ import { useAppState } from "@stores/app.store";
 import { cn } from "@utils/cn";
 import { parseNumberToColumn } from "@utils/parseNumberToColumn";
 import { useState } from "react";
+import { toast } from "sonner";
 import { useGetSheetData } from "../@services/queries";
 
 export type SpreadsheetData = string[][];
@@ -37,6 +38,7 @@ export default function SpreadsheetMapper({ initialSelection, onSave }: Spreadsh
 		onSave({
 			column: selectedColumn,
 		});
+		toast.success(`Columna ${selectedColumn} seleccionada correctamente`);
 		modals.closeAll();
 	};
 

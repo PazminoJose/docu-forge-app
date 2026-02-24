@@ -15,6 +15,7 @@ import { useAppState } from "@stores/app.store";
 import { IconFileFilled, IconFolderOpen, IconTablePlus, IconX } from "@tabler/icons-react";
 import { openPath } from "@tauri-apps/plugin-opener";
 import { zod4Resolver } from "mantine-form-zod-resolver";
+import { toast } from "sonner";
 import useProcessDocxSocket from "../../@hooks/useProcessDocxSocket";
 import { useGetDocxFields, useGetSheetRange } from "../../@services/queries";
 import SpreadsheetMapper, { type Mapping } from "../SpreadsheetMapper";
@@ -67,10 +68,19 @@ export default function DocxFields() {
 	};
 
 	const handleRemoveMapping = (index: number) => {
+		const mappedColumn = form.getValues().fields[index].mappedToColumn;
+		const useAsName = form.getValues().fields[index].useAsName;
 		form.setFieldValue(`fields.${index}.mappedToColumn`, "");
-		form.setFieldValue(`fields.${index}.range`, undefined);
-		form.setFieldValue(`fields.${index}.skipHeader`, false);
-		form.setFieldValue(`fields.${index}.value`, `$\{${form.getValues().fields[index].identifier}}`);
+		form.setFieldValue(`fields.${index}.useAsName`, false);
+		toast.info("Mapeo removido correctamente", {
+			action: {
+				label: "Deshacer",
+				onClick: () => {
+					form.setFieldValue(`fields.${index}.mappedToColumn`, mappedColumn);
+					form.setFieldValue(`fields.${index}.useAsName`, useAsName);
+				},
+			},
+		});
 	};
 
 	const handleCheckUseAsName = (index: number, value: boolean) => {

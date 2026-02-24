@@ -1,5 +1,6 @@
 import { useAppState } from "@stores/app.store";
 import { useRef, useState } from "react";
+import { toast } from "sonner";
 import { envs } from "src/@config/envs";
 import type { DocxFieldsSchema } from "../@components/DocxFields/docxFieldSchema";
 
@@ -36,11 +37,7 @@ export default function useProcessDocxSocket() {
 				} else if (data.status === "completed") {
 					setLoading(false);
 					socketRef.current?.close();
-				} else if (data.status === "cancelled") {
-					console.warn("Proceso cancelado por el usuario");
-					setLoading(false);
-					socketRef.current?.close();
-					setProgress(0);
+					toast.success("Proceso completado exitosamente");
 				}
 			};
 		}
@@ -51,6 +48,8 @@ export default function useProcessDocxSocket() {
 			setProgress(0);
 			setLoading(false);
 			socketRef.current.close();
+			toast.warning("Proceso cancelado por el usuario");
+			socketRef.current = null;
 		}
 	}
 
