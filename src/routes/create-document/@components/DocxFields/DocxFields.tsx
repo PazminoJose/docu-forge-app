@@ -9,25 +9,24 @@ import {
 	Tooltip,
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
+import { useShallowEffect } from "@mantine/hooks";
 import { modals } from "@mantine/modals";
 import { useAppState } from "@stores/app.store";
 import { IconFileFilled, IconFolderOpen, IconTablePlus, IconX } from "@tabler/icons-react";
-import { invoke } from "@tauri-apps/api/core";
 import { openPath } from "@tauri-apps/plugin-opener";
-import { callPython } from "@utils/callPython";
 import { zod4Resolver } from "mantine-form-zod-resolver";
-import { useCallback, useEffect, useRef, useState } from "react";
+import useProcessDocxSocket from "../../@hooks/useProcessDocxSocket";
+import { useGetDocxFields, useGetSheetRange } from "../../@services/queries";
 import SpreadsheetMapper, { type Mapping } from "../SpreadsheetMapper";
-import { type DocxFieldsSchema, docxFieldsSchema, initialDocxFields } from "./docxFieldSchema";
+import { docxFieldsSchema, initialDocxFields } from "./docxFieldSchema";
 
 export default function DocxFields() {
-	const [progress, setProgress] = useState(0);
-	const [loading, setLoading] = useState(false);
-	const [loadingSubmit, setLoadingSubmit] = useState(false);
 	const templateFilePath = useAppState((state) => state.templateFilePath);
 	const dataFilePath = useAppState((state) => state.dataFilePath);
 	const outputFolderPath = useAppState((state) => state.outputFolderPath);
-	const socketRef = useRef<WebSocket | null>(null);
+	const { loading: loadingProcess, progress, processDocx, cancelProcess } = useProcessDocxSocket();
+	const { data: spreadSheetRange } = useGetSheetRange(dataFilePath);
+	const { data: docxFields, isLoading } = useGetDocxFields(templateFilePath);
 
 	const form = useForm({
 		initialValues: initialDocxFields,
@@ -36,12 +35,6 @@ export default function DocxFields() {
 
 	const handleMapToColumn = async (index: number) => {
 		try {
-			const encodedPath = encodeURIComponent(dataFilePath || "");
-			const endpoint = `get-data?path=${encodedPath}`;
-			const { data } = await callPython<{
-				data: string[][];
-			}>("GET", endpoint);
-			// form.setFieldValue("range", range);
 			const initialMappedToColumn = form.getValues().fields[index].mappedToColumn;
 			let initialSelection: Mapping | null = null;
 			if (initialMappedToColumn) {
@@ -51,11 +44,10 @@ export default function DocxFields() {
 			}
 			modals.open({
 				size: "auto",
-				title: "Mapear a columna",
+				title: "Seleccionar la columna",
 				children: (
 					<SpreadsheetMapper
 						initialSelection={initialSelection}
-						data={data}
 						onSave={(mapping) => handleSaveMapping(index, mapping)}
 					/>
 				),
@@ -93,92 +85,37 @@ export default function DocxFields() {
 	};
 
 	const handleOpenOutputFolder = async () => {
-		console.log({ outputFolderPath });
-
 		await openPath(outputFolderPath);
 	};
 
-	const handleSubmit = async (values: DocxFieldsSchema) => {
-		console.log({ values });
-		socketRef.current = new WebSocket("ws://localhost:8000/process-docx");
-		if (socketRef.current != null) {
-			socketRef.current.onopen = () => {
-				socketRef.current?.send(
-					JSON.stringify({
-						action: "start",
-						docx_path: templateFilePath,
-						xlsx_path: dataFilePath,
-						output_folder: outputFolderPath,
-						skip_header: values.skipHeader,
-						range: values.range,
-						fields: values.fields,
-					}),
-				);
-				setLoadingSubmit(true);
-			};
-
-			socketRef.current.onmessage = (event) => {
-				const data = JSON.parse(event.data);
-				if (data.status === "progress") {
-					setProgress(data.percent);
-				} else if (data.status === "completed") {
-					console.log("¡Terminado!");
-					setLoadingSubmit(false);
-					socketRef.current?.close();
-				} else if (data.status === "cancelled") {
-					console.warn("Proceso cancelado por el usuario");
-				}
-			};
+	// EFFECTS
+	useShallowEffect(() => {
+		if (spreadSheetRange) {
+			form.setFieldValue("range", spreadSheetRange);
 		}
-	};
+	}, [spreadSheetRange]);
 
-	function cancelJob() {
-		if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
-			setProgress(0);
-			setLoadingSubmit(false);
-			socketRef.current.close();
+	useShallowEffect(() => {
+		if (docxFields && docxFields.length > 0) {
+			form.setFieldValue(
+				"fields",
+				docxFields.map((field) => ({
+					identifier: field,
+					value: `$\{${field}}`,
+					skipHeader: false,
+					useAsName: false,
+				})),
+			);
 		}
-	}
-
-	// biome-ignore lint/correctness/useExhaustiveDependencies: <explanation>
-	const getFields = useCallback(async () => {
-		if (templateFilePath) {
-			setLoading(true);
-			const res = await invoke<string[]>("get_fields", {
-				filePath: templateFilePath,
-			});
-			if (res && res.length > 0) {
-				form.setFieldValue(
-					"fields",
-					res.map((variable) => ({
-						identifier: variable,
-						value: `$\{${variable}}`,
-						skipHeader: false,
-						useAsName: false,
-					})),
-				);
-			}
-			const encodedPath = encodeURIComponent(dataFilePath || "");
-			const endpoint = `get-range?path=${encodedPath}`;
-			const { range } = await callPython<{
-				range: { from: number; to: number };
-			}>("GET", endpoint);
-			form.setFieldValue("range", range);
-			setLoading(false);
-		}
-	}, [templateFilePath]);
-
-	useEffect(() => {
-		getFields();
-	}, [getFields]);
+	}, [docxFields]);
 
 	return (
 		<form
 			className="mt-2 flex h-full flex-col justify-between gap-3"
-			onSubmit={form.onSubmit(handleSubmit)}
+			onSubmit={form.onSubmit(processDocx)}
 		>
 			<div className="flex h-full flex-col gap-2">
-				{loading ? (
+				{isLoading ? (
 					<Loader size="lg" className="m-auto" />
 				) : (
 					<>
@@ -255,12 +192,12 @@ export default function DocxFields() {
 				)}
 			</div>
 			<div className="flex flex-col gap-2">
-				{loadingSubmit && <Progress value={progress} />}
-				<Button type="submit" leftSection={<IconFileFilled />} loading={loadingSubmit}>
+				{loadingProcess && <Progress value={progress} />}
+				<Button type="submit" leftSection={<IconFileFilled />} loading={loadingProcess}>
 					Generar
 				</Button>
-				{loadingSubmit && (
-					<Button color="red" onClick={cancelJob}>
+				{loadingProcess && (
+					<Button color="red" onClick={cancelProcess}>
 						Cancelar
 					</Button>
 				)}
