@@ -1,25 +1,25 @@
+import { Skeleton } from "@mantine/core";
+import { useShallowEffect } from "@mantine/hooks";
 import { useAppState } from "@stores/app.store";
-import { invoke } from "@tauri-apps/api/core";
 import * as docx from "docx-preview";
-import { useCallback, useEffect, useRef } from "react";
+import { useRef } from "react";
+import { useGetDocxFile } from "../@services/queries";
 
 export default function DocxViewer() {
 	const templateDocumentPath = useAppState((state) => state.templateFilePath);
+	const { data, isLoading } = useGetDocxFile(templateDocumentPath);
 	const containerRef = useRef<HTMLDivElement>(null);
 
-	const getTemplateDocument = useCallback(async () => {
-		if (templateDocumentPath && containerRef.current) {
-			const res = await invoke<number[]>("get_file", {
-				filePath: templateDocumentPath,
-			});
-			const buffer = new Uint8Array(res);
+	useShallowEffect(() => {
+		if (templateDocumentPath && containerRef.current && data) {
+			const buffer = new Uint8Array(data);
 			docx.renderAsync(buffer, containerRef.current);
 		}
-	}, [templateDocumentPath]);
+	}, [data]);
 
-	useEffect(() => {
-		getTemplateDocument();
-	}, [getTemplateDocument]);
-
-	return <section aria-label="Document preview" ref={containerRef} className="h-full w-full"></section>;
+	return isLoading ? (
+		<Skeleton className="h-full w-full" />
+	) : (
+		<section aria-label="Document preview" ref={containerRef} className="h-full w-full"></section>
+	);
 }
