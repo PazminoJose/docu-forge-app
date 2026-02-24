@@ -53,3 +53,24 @@ pub fn kill_sidecar(handle: &SidecarHandle) {
         let _ = child.kill();
     }
 }
+
+pub async fn kill_sidecar_for_update(handle: &SidecarHandle) {
+    let child_to_kill = {
+        let mut lock = handle.lock().unwrap();
+        lock.take()
+    };
+
+    if let Some(child) = child_to_kill {
+        let pid = child.pid();
+
+        #[cfg(windows)]
+        {
+            let _ = tokio::process::Command::new("taskkill")
+                .args(["/F", "/T", "/PID", &pid.to_string()])
+                .status()
+                .await;
+        }
+
+        tokio::time::sleep(std::time::Duration::from_millis(300)).await;
+    }
+}

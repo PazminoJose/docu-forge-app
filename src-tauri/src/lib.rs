@@ -23,9 +23,10 @@ pub fn run() {
             let app_handler = app.handle().clone();
             let sidecar_h = sidecar_handle.clone();
             tauri::async_runtime::spawn(async move {
-                tokio::time::sleep(std::time::Duration::from_millis(200)).await;
                 setup_sidecar(&app_handler, sidecar_h.clone());
-                update(app_handler, &sidecar_h).await.unwrap();
+                if let Err(e) = update(app_handler, sidecar_h).await {
+                    eprintln!("Error: {}", e);
+                }
             });
             Ok(())
         })
