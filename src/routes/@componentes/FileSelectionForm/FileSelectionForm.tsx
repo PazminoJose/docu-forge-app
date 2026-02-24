@@ -13,6 +13,7 @@ export default function FileSelectionForm() {
 	const setDataFilePath = useAppState((state) => state.setDataFilePath);
 	const setTemplateFilePath = useAppState((state) => state.setTemplateFilePath);
 	const setOutputFolderPath = useAppState((state) => state.setOutputFolderPath);
+	const router = useRouter();
 
 	const appState = useAppState(
 		useShallow((state) => ({
@@ -22,19 +23,15 @@ export default function FileSelectionForm() {
 		})),
 	);
 
-	const router = useRouter();
-
 	const form = useForm({
-		initialValues: appState as FileSelectionSchema,
+		initialValues: appState,
 		validate: zod4Resolver(fileSelectionSchema),
-		onValuesChange: (values) => {
-			setDataFilePath(values.dataFilePath);
-			setTemplateFilePath(values.templateFilePath);
-			setOutputFolderPath(values.outputFolderPath);
-		},
 	});
 
-	const handleContinue = async () => {
+	const handleContinue = async (values: FileSelectionSchema) => {
+		setDataFilePath(values.dataFilePath);
+		setTemplateFilePath(values.templateFilePath);
+		setOutputFolderPath(values.outputFolderPath);
 		router.navigate({
 			to: "/create-document",
 		});
