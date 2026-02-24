@@ -1,8 +1,10 @@
-import { Button, Table } from "@mantine/core";
+import { Button, Loader, Table } from "@mantine/core";
 import { modals } from "@mantine/modals";
+import { useAppState } from "@stores/app.store";
 import { cn } from "@utils/cn";
 import { parseNumberToColumn } from "@utils/parseNumberToColumn";
 import { useState } from "react";
+import { useGetSheetData } from "../@services/queries";
 
 export type SpreadsheetData = string[][];
 
@@ -12,11 +14,13 @@ export type Mapping = {
 
 interface SpreadsheetMapperProps {
 	initialSelection: Mapping | null;
-	data: SpreadsheetData;
 	onSave: (savedMapping: Mapping) => void;
 }
 
-export default function SpreadsheetMapper({ initialSelection, data, onSave }: SpreadsheetMapperProps) {
+export default function SpreadsheetMapper({ initialSelection, onSave }: SpreadsheetMapperProps) {
+	const dataFilePath = useAppState((state) => state.dataFilePath);
+	const { data: spreadSheetData, isLoading } = useGetSheetData(dataFilePath);
+
 	const [selectedColumn, setSelectedColumn] = useState<string | null>(
 		initialSelection ? initialSelection.column : null,
 	);
@@ -36,7 +40,7 @@ export default function SpreadsheetMapper({ initialSelection, data, onSave }: Sp
 		modals.closeAll();
 	};
 
-	const rows = data.map((row, index) => (
+	const rows = spreadSheetData?.map((row, index) => (
 		<Table.Tr key={`row-${index}-${row.join("-")}`}>
 			{row.map((cell, cellIndex) => (
 				<Table.Td
@@ -52,15 +56,19 @@ export default function SpreadsheetMapper({ initialSelection, data, onSave }: Sp
 		</Table.Tr>
 	));
 
-	return (
+	return isLoading ? (
+		<div className="flex h-full max-h-[75vh] items-center justify-center">
+			<Loader size="lg" />
+		</div>
+	) : (
 		<div className="flex h-full max-h-[75vh] flex-col">
 			<div className="flex-1 overflow-auto">
 				<Table withColumnBorders withRowBorders withTableBorder stickyHeader>
 					<Table.Thead>
 						<Table.Tr>
-							{data &&
-								data.length > 0 &&
-								data[0].map((_, index) => (
+							{spreadSheetData &&
+								spreadSheetData.length > 0 &&
+								spreadSheetData[0].map((_, index) => (
 									<Table.Th
 										className={cn(
 											"min-w-40 max-w-40 cursor-pointer bg-gray-100 text-center",
