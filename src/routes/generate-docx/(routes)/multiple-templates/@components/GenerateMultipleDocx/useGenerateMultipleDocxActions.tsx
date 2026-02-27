@@ -7,10 +7,7 @@ import { toast } from "sonner";
 import SpreadsheetMapper, {
 	type Mapping,
 } from "src/routes/generate-docx/@components/SpreadsheetMapper";
-import {
-	useGetDocxFields,
-	useGetSheetRange,
-} from "src/routes/generate-docx/@services/queries";
+import { useGetDocxFields } from "src/routes/generate-docx/@services/queries";
 import SpreadsheetFilters, {
 	type SpreadsheetColumnFilter,
 } from "../SpreadsheetFilterSelector";
@@ -24,10 +21,7 @@ import {
 
 export default function useGenerateMultipleDocxActions() {
 	const templateFilePath = useAppState((state) => state.templateFilePath);
-	const dataFilePath = useAppState((state) => state.dataFilePath);
 	const setTemplateFilePath = useAppState((state) => state.setTemplateFilePath);
-
-	const { data: spreadSheetRange } = useGetSheetRange(dataFilePath);
 	const { data: docxFields } = useGetDocxFields(templateFilePath);
 
 	const form = useForm({
