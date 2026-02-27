@@ -7,6 +7,8 @@ app = Sanic("PythonBackend")
 
 app.config.CORS_ORIGINS = "*"
 app.config.CORS_METHODS = ["GET", "POST", "OPTIONS"]
+app.config.OAS = False
+app.config.SWAGGER_UI_CONFIGURATION = {"displayOperationId": False}
 
 Extend(app)
 
