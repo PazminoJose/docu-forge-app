@@ -10,15 +10,14 @@
 	},
 	"formatter": {
 		"enabled": true,
-		"indentStyle": "tab",
-		"lineWidth": 105
+		"indentStyle": "tab"
 	},
 	"linter": {
 		"enabled": true,
 		"rules": {
 			"recommended": true,
-			"nursery":{
-				"useSortedClasses":"warn"
+			"nursery": {
+				"useSortedClasses": "warn"
 			}
 		}
 	},
@@ -27,7 +26,7 @@
 			"quoteStyle": "double"
 		}
 	},
-	"css":{
+	"css": {
 		"parser": {
 			"tailwindDirectives": true
 		}
