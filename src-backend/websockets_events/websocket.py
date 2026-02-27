@@ -153,7 +153,6 @@ async def process_docx(ws):
         print(f"CRITICAL ERROR:\n{traceback.format_exc()}")
         await ws.send(py_json.dumps({"status": "error", "message": str(e)}))
 
-
 def _merge_documents(doc_paths, output_path):
     """
     Une múltiples .docx en uno solo. Cada documento fuente comienza
@@ -193,7 +192,6 @@ def _merge_documents(doc_paths, output_path):
     _remove_empty_pages(merged)
 
     merged.save(output_path)
-
 
 def _add_page_break_section(doc):
     """
@@ -280,7 +278,6 @@ def _copy_relationships(source_doc, target_doc):
 
     return rel_mapping
 
-
 def _remap_relationships(element, rel_mapping):
     """
     Recorre un elemento XML y reemplaza los rId viejos por los nuevos
@@ -308,7 +305,6 @@ def _remap_relationships(element, rel_mapping):
         rid = child.get(qn('r:id'))
         if rid and rid in rel_mapping:
             child.set(qn('r:id'), rel_mapping[rid])
-
 
 def _remove_empty_pages(doc):
     """
@@ -338,122 +334,6 @@ def _remove_empty_pages(doc):
 
         if has_visual_content:
             continue
-
-
-
-# ...existing code... (process_multiple_docx, _replace_cleanly, _combine_runs se mantienen igual)
-
-# async def process_docx(ws: Websocket):
-#     try:
-#         # Get initial config message from Frontend
-#         raw_msg = await ws.recv()
-#         data = py_json.loads(raw_msg)
-        
-#         if data.get("action") == "start":
-#             # Params
-#             docx_path = data.get("docx_path")
-#             xlsx_path = data.get("xlsx_path")
-#             output_folder = data.get("output_folder")
-#             fields = data.get("fields", [])
-#             skip_header = data.get("skip_header", False)
-#             range_config = data.get("range", {})
-#             start_row = int(range_config.get("from", 1))
-#             end_row = int(range_config.get("to", 1))
-            
-#             # Skip header adjustment
-#             if skip_header:
-#                 start_row += 1
-            
-#             total_rows_to_process = end_row - start_row + 1
-
-#             # 2. Load Excel
-#             if not os.path.exists(xlsx_path):
-#                 await ws.send(py_json.dumps({"status": "error", "message": "Archivo Excel no encontrado"}))
-#                 return
-
-#             wb = load_workbook(xlsx_path, data_only=True)
-#             sheet = wb.active
-
-#             if not os.path.exists(output_folder):
-#                 os.makedirs(output_folder, exist_ok=True)
-
-#             # --- 3. Row Processing Loop ---
-#             for i, row_idx in enumerate(range(start_row, end_row + 1)):
-#                 # A. CHECK FOR CANCELLATION
-#                 try:
-#                     # Ultra-fast attempt to see if there's a message from the client
-#                     client_msg = await asyncio.wait_for(ws.recv(), timeout=0.0001)
-#                     parsed_client_msg = py_json.loads(client_msg)
-#                     if parsed_client_msg.get("action") == "cancel":
-#                         print(f"DEBUG: Proceso cancelado en fila {row_idx}")
-#                         await ws.send(py_json.dumps({"status": "cancelled"}))
-#                         return 
-#                 except (asyncio.TimeoutError, Exception):
-#                     pass # Seguimos si no hay mensaje
-
-#                 # B. LOAD DOCX AND PROCESS FIELDS
-#                 doc = Document(docx_path)
-#                 was_modified = False
-#                 custom_filename = None
-                
-#                 for field in fields:
-#                     identifier = f"${{{field['identifier']}}}"
-#                     col_letter = field.get('mappedToColumn') # Quitamos el default 'A' aquí
-
-#                     # --- NUEVA LÓGICA DE VALOR ---
-#                     if col_letter:
-#                         # Si hay columna, extraemos del Excel
-#                         col_idx = column_index_from_string(col_letter)
-#                         cell_value = sheet.cell(row=row_idx, column=col_idx).value
-#                     else:
-#                         # Si no hay columna (es null), usamos el valor estático del campo
-#                         cell_value = field.get('value', "")
-
-#                     # Formatting (Dates, Strings, Nulls)
-#                     if isinstance(cell_value, (datetime, pd.Timestamp)):
-#                         replacement = cell_value.strftime("%Y-%m-%d")
-#                     elif cell_value is None:
-#                         replacement = ""
-#                     else:
-#                         replacement = str(cell_value)
-
-#                     # Dynamic filename capture (funciona igual sea estático o del excel)
-#                     if field.get('useAsName', False) and replacement.strip():
-#                         custom_filename = "".join(c for c in replacement if c.isalnum() or c in (' ', '_', '-')).strip()
-
-#                     # Clean replacement
-#                     if _replace_cleanly(doc, identifier, replacement):
-#                         was_modified = True
-
-#                 # C. Save if modified
-#                 if was_modified:
-#                     filename = f"{custom_filename}.docx" if custom_filename else f"Resultado_{row_idx}.docx"
-#                     save_path = os.path.join(output_folder, filename)
-#                     doc.save(save_path)
-
-#                 # D. Report Progress
-#                 percent = int(((i + 1) / total_rows_to_process) * 100)
-#                 await ws.send(py_json.dumps({
-#                     "status": "progress",
-#                     "percent": percent,
-#                     "current": i + 1,
-#                     "total": total_rows_to_process
-#                 }))
-
-#                 # Small pause to allow WebSocket to process the send
-#                 await asyncio.sleep(0.01)
-
-#             # 4. FINALIZATION
-#             await ws.send(py_json.dumps({"status": "completed"}))
-
-#     except Exception as e:
-#         import traceback
-#         error_details = traceback.format_exc()
-#         print(f"CRITICAL ERROR:\n{error_details}")
-#         try:
-#             await ws.send(py_json.dumps({"status": "error", "message": str(e)}))
-#         except:
-#             pass
 
 async def process_multiple_docx(ws: Websocket):
     try:
@@ -572,7 +452,6 @@ async def process_multiple_docx(ws: Websocket):
     except Exception as e:
         print(f"ERROR: {e}")
         await ws.send(py_json.dumps({"status": "error", "message": str(e)}))
-
 
 def _replace_cleanly(doc, old_text, new_text):
     found = False
