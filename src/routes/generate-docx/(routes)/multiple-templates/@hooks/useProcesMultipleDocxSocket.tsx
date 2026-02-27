@@ -12,6 +12,17 @@ export default function useProcessMultipleDocxSocket() {
 	const socketRef = useRef<WebSocket | null>(null);
 
 	const processDocx = (values: GenerateMultipleDocxSchema) => {
+		console.log({
+			action: "start",
+			xlsx_path: dataFilePath,
+			output_folder: outputFolderPath,
+			skip_header: values.skipHeader,
+			range: values.range,
+			fields: values.fields,
+			filters: values.filters,
+			templateMapping: values.templateMapping,
+		});
+		// return;
 		socketRef.current = new WebSocket(
 			`${envs.WEB_SOCKET_URL}/process-multiple-docx`,
 		);

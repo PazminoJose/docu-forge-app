@@ -10,7 +10,7 @@ import { IconFilter, IconTableOptions, IconX } from "@tabler/icons-react";
 import MapperFieldInput from "src/routes/generate-docx/@components/MapperFieldInput";
 import OpenOutputFolder from "src/routes/generate-docx/@components/OpenOutputFolder";
 import { ProcessActionControls } from "src/routes/generate-docx/@components/ProcessActionControls";
-import RangeInput from "src/routes/generate-docx/@components/RangeInput";
+import SpreadsheetRangeInput from "src/routes/generate-docx/@components/SpreadsheetRangeInput";
 import useProcessMultipleDocxSocket from "../../@hooks/useProcesMultipleDocxSocket";
 import useGenerateMultipleDocxActions from "./useGenerateMultipleDocxActions";
 
@@ -80,7 +80,7 @@ export default function GenerateMultipleDocxOptions() {
 				</section>
 				<section>
 					<Divider my="sm" label="Rango a generar" labelPosition="center" />
-					<RangeInput
+					<SpreadsheetRangeInput
 						fromProps={form.getInputProps("range.from")}
 						toProps={form.getInputProps("range.to")}
 					/>

@@ -362,7 +362,7 @@ async def process_multiple_docx(ws: Websocket):
                 mapping_dict[combo_key] = item['templatePath']
 
             # Identificar qué columna dicta la subcarpeta
-            folder_filter = next((f for f in filters_config if f.get("useAsFolder")), None)
+            folder_filter = next((f for f in filters_config if f.get("useAsFolderName")), None)
             folder_col_letter = folder_filter["column"] if folder_filter else None
 
             # 3. Carga de Excel

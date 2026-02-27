@@ -38,7 +38,7 @@ export default function SpreadsheetFiltersSelector({
 				{
 					column: parseNumberToColumn(index),
 					index,
-					label: spreadSheetData ? spreadSheetData[0][index] : "",
+					label: spreadSheetData ? spreadSheetData[0].data[0][index].value : "",
 				},
 			]);
 		}
@@ -52,7 +52,7 @@ export default function SpreadsheetFiltersSelector({
 		modals.closeAll();
 	};
 
-	const rows = spreadSheetData?.slice(0, 1)?.map((row, index) => (
+	const rows = spreadSheetData?.[0].data.slice(0, 1)?.map((row, index) => (
 		<Table.Tr key={`row-${index}-${row.join("-")}`}>
 			{row.map((cell, cellIndex) => (
 				<Table.Td
@@ -63,7 +63,7 @@ export default function SpreadsheetFiltersSelector({
 							"bg-blue-500/60 text-white",
 					)}
 				>
-					{cell}
+					{cell.value}
 				</Table.Td>
 			))}
 		</Table.Tr>
@@ -81,7 +81,7 @@ export default function SpreadsheetFiltersSelector({
 						<Table.Tr>
 							{spreadSheetData &&
 								spreadSheetData.length > 0 &&
-								spreadSheetData[0].map((_, index) => (
+								spreadSheetData[0].data[0].map((_, index) => (
 									<Table.Th
 										className={cn(
 											"min-w-40 max-w-40 cursor-pointer bg-gray-100 text-center",

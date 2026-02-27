@@ -49,6 +49,8 @@ export default function useGenerateMultipleDocxActions() {
 					sheet: initialMappedToSheet,
 				};
 			}
+			console.log({ initialSelection });
+
 			modals.open({
 				size: "auto",
 				title: "Seleccionar la columna",
@@ -65,11 +67,13 @@ export default function useGenerateMultipleDocxActions() {
 	};
 
 	const handleSaveMapping = (index: number, mapping: Mapping) => {
-		const { column } = mapping;
+		const { column, sheet } = mapping;
 		if (column == null) {
 			form.setFieldValue(`fields.${index}.mappedToColumn`, null);
+			form.setFieldValue(`fields.${index}.mappedToSheet`, null);
 		} else {
 			form.setFieldValue(`fields.${index}.mappedToColumn`, column);
+			form.setFieldValue(`fields.${index}.mappedToSheet`, sheet);
 		}
 	};
 
@@ -158,13 +162,6 @@ export default function useGenerateMultipleDocxActions() {
 			),
 		});
 	};
-
-	// EFFECTS
-	useShallowEffect(() => {
-		if (spreadSheetRange && spreadSheetRange.length > 0) {
-			form.setFieldValue("range", spreadSheetRange[0].range);
-		}
-	}, [spreadSheetRange]);
 
 	useShallowEffect(() => {
 		if (docxFields && docxFields.length > 0) {
