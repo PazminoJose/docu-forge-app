@@ -18,6 +18,7 @@ export const useGetDocxFile = (templateFilePath: string) => {
 	return useQuery({
 		queryKey: [DOCX_FILE_QUERY_KEY, templateFilePath],
 		queryFn: () => getDocxFile(templateFilePath),
+		enabled: Boolean(templateFilePath),
 	});
 };
 
@@ -36,18 +37,24 @@ export const useGetDocxFields = (templateFilePath: string) => {
 	return useQuery({
 		queryKey: [DOCX_FIELDS_QUERY_KEY, templateFilePath],
 		queryFn: () => getDocxFields(templateFilePath),
+		enabled: Boolean(templateFilePath),
 	});
 };
 
 // SPREADSHEET RANGE QUERIES
 const SPREADSHEET_RANGE_QUERY_KEY = "spreadsheet-range";
 
+export type SpreadsheetRange = {
+	sheet: string;
+	range: { from: number; to: number };
+};
+
 async function getSpreadsheetRange(dataFilePath: string) {
 	const encodedPath = encodeURIComponent(dataFilePath || "");
-	const res = await API.get<{ range: { from: number; to: number } }>({
+	const res = await API.get<SpreadsheetRange[]>({
 		url: `/get-range?path=${encodedPath}`,
 	});
-	return res.range;
+	return res;
 }
 
 export const useGetSheetRange = (dataFilePath: string) => {
@@ -60,12 +67,17 @@ export const useGetSheetRange = (dataFilePath: string) => {
 // SPREADSHEET QUERIES
 const SPREADSHEET_DATA_QUERY_KEY = "spreadsheet-data";
 
+export type SpreadsheetData = {
+	sheet: string;
+	data: { column: string; value: string }[][];
+};
+
 async function getSpreadsheetData(dataFilePath: string) {
 	const encodedPath = encodeURIComponent(dataFilePath || "");
-	const res = await API.get<{ data: string[][] }>({
+	const res = await API.get<SpreadsheetData[]>({
 		url: `/get-data?path=${encodedPath}`,
 	});
-	return res.data;
+	return res;
 }
 
 export const useGetSheetData = (dataFilePath: string) => {

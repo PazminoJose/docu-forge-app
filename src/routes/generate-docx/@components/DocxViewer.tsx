@@ -17,9 +17,21 @@ export default function DocxViewer() {
 		}
 	}, [data]);
 
+	if (!templateDocumentPath) {
+		return (
+			<div className="flex h-full items-center justify-center">
+				<p className="text-gray-500">Previsualización no disponible</p>
+			</div>
+		);
+	}
+
 	return isLoading ? (
 		<Skeleton className="h-full w-full" />
 	) : (
-		<section aria-label="Document preview" ref={containerRef} className="h-full w-full"></section>
+		<section
+			aria-label="Document preview"
+			ref={containerRef}
+			className="h-full w-full"
+		></section>
 	);
 }

@@ -2,7 +2,7 @@ import { useAppState } from "@stores/app.store";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
 import { envs } from "src/@config/envs";
-import type { DocxFieldsSchema } from "../@components/DocxFields/docxFieldSchema";
+import type { GenerateSingleDocxSchema } from "../@components/GenerateSingleDocx/generateSingleDocxSchema";
 
 export default function useProcessDocxSocket() {
 	const templateFilePath = useAppState((state) => state.templateFilePath);
@@ -12,7 +12,7 @@ export default function useProcessDocxSocket() {
 	const [progress, setProgress] = useState(0);
 	const socketRef = useRef<WebSocket | null>(null);
 
-	const processDocx = (values: DocxFieldsSchema) => {
+	const processDocx = (values: GenerateSingleDocxSchema) => {
 		socketRef.current = new WebSocket(`${envs.WEB_SOCKET_URL}/process-docx`);
 		if (socketRef.current != null) {
 			socketRef.current.onopen = () => {
@@ -26,6 +26,8 @@ export default function useProcessDocxSocket() {
 						skip_header: values.skipHeader,
 						range: values.range,
 						fields: values.fields,
+						apply_to_all_sheets: values.applyToAllSheets,
+						merge_generated_files: values.mergeGeneratedFiles,
 					}),
 				);
 			};
@@ -38,6 +40,7 @@ export default function useProcessDocxSocket() {
 					setLoading(false);
 					socketRef.current?.close();
 					toast.success("Proceso completado exitosamente");
+					setProgress(100);
 				}
 			};
 		}
@@ -45,12 +48,12 @@ export default function useProcessDocxSocket() {
 
 	function cancelProcess() {
 		if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
-			setProgress(0);
-			setLoading(false);
 			socketRef.current.close();
-			toast.warning("Proceso cancelado por el usuario");
-			socketRef.current = null;
 		}
+		setProgress(0);
+		setLoading(false);
+		toast.warning("Proceso cancelado por el usuario");
+		socketRef.current = null;
 	}
 
 	return {

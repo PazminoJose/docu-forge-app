@@ -1,14 +1,14 @@
-import { Button, Text } from "@mantine/core";
-import { IconFolder } from "@tabler/icons-react";
+import { ActionIcon, Text } from "@mantine/core";
+import { IconFolder, IconX } from "@tabler/icons-react";
 import { appDataDir } from "@tauri-apps/api/path";
 import { open } from "@tauri-apps/plugin-dialog";
 import { formatDisplayPath } from "@utils/formatDisplayPath";
-import { type ReactNode } from "react";
+import { ReactNode } from "react";
 
 const ICON_SIZE = 24;
 const MAX_PATH_LENGTH = 400;
 
-interface FolderButtonProps {
+interface FileButtonInputProps {
 	formatDisplayFunction?: (path: string) => string;
 	extensions?: string[];
 	children?: ReactNode;
@@ -17,14 +17,13 @@ interface FolderButtonProps {
 	onChange?: (value: string) => void;
 }
 
-export default function FileInput({
+export default function FileButtonInput({
 	extensions,
 	value,
 	error,
 	onChange,
-	children,
 	formatDisplayFunction,
-}: FolderButtonProps) {
+}: FileButtonInputProps) {
 	const handleOnClick = async () => {
 		const folderPath = await open({
 			filters: [{ name: "Files", extensions: extensions ?? ["*"] }],
@@ -36,19 +35,30 @@ export default function FileInput({
 		}
 	};
 
+	const handleClear = () => {
+		onChange?.("");
+	};
+
 	return (
-		<div className="flex w-full flex-col justify-center gap-2">
-			<Button
-				onClick={handleOnClick}
-				leftSection={<IconFolder size={ICON_SIZE} />}
-				variant="filled"
-				className="mx-auto bg-secondary-900"
-			>
-				{children}
-			</Button>
+		<div className="flex w-full justify-center gap-2">
+			{value ? (
+				<ActionIcon onClick={handleClear} color="red">
+					<IconX size={ICON_SIZE} />
+				</ActionIcon>
+			) : (
+				<ActionIcon onClick={handleOnClick}>
+					<IconFolder size={ICON_SIZE} />
+				</ActionIcon>
+			)}
 			{value && (
-				<Text size="sm" className="self-center truncate" style={{ maxWidth: `${MAX_PATH_LENGTH}px` }}>
-					{formatDisplayFunction ? formatDisplayFunction(value) : formatDisplayPath(value)}
+				<Text
+					size="sm"
+					className="self-center truncate"
+					style={{ maxWidth: `${MAX_PATH_LENGTH}px` }}
+				>
+					{formatDisplayFunction
+						? formatDisplayFunction(value)
+						: formatDisplayPath(value)}
 				</Text>
 			)}
 			{error && (

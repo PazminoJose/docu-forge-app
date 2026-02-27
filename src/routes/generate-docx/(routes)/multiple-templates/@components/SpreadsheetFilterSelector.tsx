@@ -5,51 +5,62 @@ import { cn } from "@utils/cn";
 import { parseNumberToColumn } from "@utils/parseNumberToColumn";
 import { useState } from "react";
 import { toast } from "sonner";
-import { useGetSheetData } from "../@services/queries";
+import { useGetSheetData } from "src/routes/generate-docx/@services/queries";
 
-export type SpreadsheetData = string[][];
-
-export type Mapping = {
-	column: string | null;
+export type SpreadsheetColumnFilter = {
+	column: string;
+	label: string;
+	index: number;
 };
 
-interface SpreadsheetMapperProps {
-	initialSelection: Mapping | null;
-	onSave: (savedMapping: Mapping) => void;
+interface SpreadsheetFiltersProps {
+	initialSelection?: SpreadsheetColumnFilter[];
+	onSave: (savedMapping: SpreadsheetColumnFilter[]) => void;
 }
 
-export default function SpreadsheetMapper({ initialSelection, onSave }: SpreadsheetMapperProps) {
+export default function SpreadsheetFiltersSelector({
+	initialSelection = [],
+	onSave,
+}: SpreadsheetFiltersProps) {
 	const dataFilePath = useAppState((state) => state.dataFilePath);
 	const { data: spreadSheetData, isLoading } = useGetSheetData(dataFilePath);
 
-	const [selectedColumn, setSelectedColumn] = useState<string | null>(
-		initialSelection ? initialSelection.column : null,
-	);
+	const [selectedColumn, setSelectedColumn] =
+		useState<SpreadsheetColumnFilter[]>(initialSelection);
 
-	const handleSelectColumn = (column: string) => {
-		if (selectedColumn === column) {
-			setSelectedColumn(null);
+	const handleSelectColumn = (index: number) => {
+		const isSelected = selectedColumn.some((col) => col.index === index);
+		if (isSelected) {
+			setSelectedColumn((prev) => prev.filter((col) => col.index !== index));
 		} else {
-			setSelectedColumn(column);
+			setSelectedColumn((prev) => [
+				...prev,
+				{
+					column: parseNumberToColumn(index),
+					index,
+					label: spreadSheetData ? spreadSheetData[0][index] : "",
+				},
+			]);
 		}
 	};
 
 	const handleSave = () => {
-		onSave({
-			column: selectedColumn,
-		});
-		toast.success(`Columna ${selectedColumn} seleccionada correctamente`);
+		onSave(selectedColumn);
+		toast.success(
+			`Columna ${selectedColumn.map((col) => col.column).join(", ")} seleccionada correctamente`,
+		);
 		modals.closeAll();
 	};
 
-	const rows = spreadSheetData?.map((row, index) => (
+	const rows = spreadSheetData?.slice(0, 1)?.map((row, index) => (
 		<Table.Tr key={`row-${index}-${row.join("-")}`}>
 			{row.map((cell, cellIndex) => (
 				<Table.Td
 					key={`cell-${cellIndex}-${cell}`}
 					className={cn(
 						"text-center",
-						selectedColumn === parseNumberToColumn(cellIndex) && "bg-blue-500/60 text-white",
+						selectedColumn.some((col) => col.index === cellIndex) &&
+							"bg-blue-500/60 text-white",
 					)}
 				>
 					{cell}
@@ -74,10 +85,11 @@ export default function SpreadsheetMapper({ initialSelection, onSave }: Spreadsh
 									<Table.Th
 										className={cn(
 											"min-w-40 max-w-40 cursor-pointer bg-gray-100 text-center",
-											selectedColumn === parseNumberToColumn(index) && "bg-blue-500 text-white",
+											selectedColumn.some((col) => col.index === index) &&
+												"bg-blue-500 text-white",
 										)}
 										key={parseNumberToColumn(index)}
-										onClick={() => handleSelectColumn(parseNumberToColumn(index))}
+										onClick={() => handleSelectColumn(index)}
 									>
 										{parseNumberToColumn(index)}
 									</Table.Th>

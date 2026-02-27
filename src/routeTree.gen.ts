@@ -9,13 +9,14 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from "./routes/__root"
-import { Route as CreateDocumentLayoutRouteImport } from "./routes/create-document/layout"
+import { Route as GenerateDocxLayoutRouteImport } from "./routes/generate-docx/layout"
 import { Route as IndexRouteImport } from "./routes/index"
-import { Route as CreateDocumentIndexRouteImport } from "./routes/create-document/index"
+import { Route as GenerateDocxroutesSingleTemplateIndexRouteImport } from "./routes/generate-docx/(routes)/single-template/index"
+import { Route as GenerateDocxroutesMultipleTemplatesIndexRouteImport } from "./routes/generate-docx/(routes)/multiple-templates/index"
 
-const CreateDocumentLayoutRoute = CreateDocumentLayoutRouteImport.update({
-  id: "/create-document",
-  path: "/create-document",
+const GenerateDocxLayoutRoute = GenerateDocxLayoutRouteImport.update({
+  id: "/generate-docx",
+  path: "/generate-docx",
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -23,47 +24,71 @@ const IndexRoute = IndexRouteImport.update({
   path: "/",
   getParentRoute: () => rootRouteImport,
 } as any)
-const CreateDocumentIndexRoute = CreateDocumentIndexRouteImport.update({
-  id: "/",
-  path: "/",
-  getParentRoute: () => CreateDocumentLayoutRoute,
-} as any)
+const GenerateDocxroutesSingleTemplateIndexRoute =
+  GenerateDocxroutesSingleTemplateIndexRouteImport.update({
+    id: "/(routes)/single-template/",
+    path: "/single-template/",
+    getParentRoute: () => GenerateDocxLayoutRoute,
+  } as any)
+const GenerateDocxroutesMultipleTemplatesIndexRoute =
+  GenerateDocxroutesMultipleTemplatesIndexRouteImport.update({
+    id: "/(routes)/multiple-templates/",
+    path: "/multiple-templates/",
+    getParentRoute: () => GenerateDocxLayoutRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   "/": typeof IndexRoute
-  "/create-document": typeof CreateDocumentLayoutRouteWithChildren
-  "/create-document/": typeof CreateDocumentIndexRoute
+  "/generate-docx": typeof GenerateDocxLayoutRouteWithChildren
+  "/generate-docx/multiple-templates/": typeof GenerateDocxroutesMultipleTemplatesIndexRoute
+  "/generate-docx/single-template/": typeof GenerateDocxroutesSingleTemplateIndexRoute
 }
 export interface FileRoutesByTo {
   "/": typeof IndexRoute
-  "/create-document": typeof CreateDocumentIndexRoute
+  "/generate-docx": typeof GenerateDocxLayoutRouteWithChildren
+  "/generate-docx/multiple-templates": typeof GenerateDocxroutesMultipleTemplatesIndexRoute
+  "/generate-docx/single-template": typeof GenerateDocxroutesSingleTemplateIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   "/": typeof IndexRoute
-  "/create-document": typeof CreateDocumentLayoutRouteWithChildren
-  "/create-document/": typeof CreateDocumentIndexRoute
+  "/generate-docx": typeof GenerateDocxLayoutRouteWithChildren
+  "/generate-docx/(routes)/multiple-templates/": typeof GenerateDocxroutesMultipleTemplatesIndexRoute
+  "/generate-docx/(routes)/single-template/": typeof GenerateDocxroutesSingleTemplateIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: "/" | "/create-document" | "/create-document/"
+  fullPaths:
+    | "/"
+    | "/generate-docx"
+    | "/generate-docx/multiple-templates/"
+    | "/generate-docx/single-template/"
   fileRoutesByTo: FileRoutesByTo
-  to: "/" | "/create-document"
-  id: "__root__" | "/" | "/create-document" | "/create-document/"
+  to:
+    | "/"
+    | "/generate-docx"
+    | "/generate-docx/multiple-templates"
+    | "/generate-docx/single-template"
+  id:
+    | "__root__"
+    | "/"
+    | "/generate-docx"
+    | "/generate-docx/(routes)/multiple-templates/"
+    | "/generate-docx/(routes)/single-template/"
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  CreateDocumentLayoutRoute: typeof CreateDocumentLayoutRouteWithChildren
+  GenerateDocxLayoutRoute: typeof GenerateDocxLayoutRouteWithChildren
 }
 
 declare module "@tanstack/react-router" {
   interface FileRoutesByPath {
-    "/create-document": {
-      id: "/create-document"
-      path: "/create-document"
-      fullPath: "/create-document"
-      preLoaderRoute: typeof CreateDocumentLayoutRouteImport
+    "/generate-docx": {
+      id: "/generate-docx"
+      path: "/generate-docx"
+      fullPath: "/generate-docx"
+      preLoaderRoute: typeof GenerateDocxLayoutRouteImport
       parentRoute: typeof rootRouteImport
     }
     "/": {
@@ -73,30 +98,41 @@ declare module "@tanstack/react-router" {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    "/create-document/": {
-      id: "/create-document/"
-      path: "/"
-      fullPath: "/create-document/"
-      preLoaderRoute: typeof CreateDocumentIndexRouteImport
-      parentRoute: typeof CreateDocumentLayoutRoute
+    "/generate-docx/(routes)/single-template/": {
+      id: "/generate-docx/(routes)/single-template/"
+      path: "/single-template"
+      fullPath: "/generate-docx/single-template/"
+      preLoaderRoute: typeof GenerateDocxroutesSingleTemplateIndexRouteImport
+      parentRoute: typeof GenerateDocxLayoutRoute
+    }
+    "/generate-docx/(routes)/multiple-templates/": {
+      id: "/generate-docx/(routes)/multiple-templates/"
+      path: "/multiple-templates"
+      fullPath: "/generate-docx/multiple-templates/"
+      preLoaderRoute: typeof GenerateDocxroutesMultipleTemplatesIndexRouteImport
+      parentRoute: typeof GenerateDocxLayoutRoute
     }
   }
 }
 
-interface CreateDocumentLayoutRouteChildren {
-  CreateDocumentIndexRoute: typeof CreateDocumentIndexRoute
+interface GenerateDocxLayoutRouteChildren {
+  GenerateDocxroutesMultipleTemplatesIndexRoute: typeof GenerateDocxroutesMultipleTemplatesIndexRoute
+  GenerateDocxroutesSingleTemplateIndexRoute: typeof GenerateDocxroutesSingleTemplateIndexRoute
 }
 
-const CreateDocumentLayoutRouteChildren: CreateDocumentLayoutRouteChildren = {
-  CreateDocumentIndexRoute: CreateDocumentIndexRoute,
+const GenerateDocxLayoutRouteChildren: GenerateDocxLayoutRouteChildren = {
+  GenerateDocxroutesMultipleTemplatesIndexRoute:
+    GenerateDocxroutesMultipleTemplatesIndexRoute,
+  GenerateDocxroutesSingleTemplateIndexRoute:
+    GenerateDocxroutesSingleTemplateIndexRoute,
 }
 
-const CreateDocumentLayoutRouteWithChildren =
-  CreateDocumentLayoutRoute._addFileChildren(CreateDocumentLayoutRouteChildren)
+const GenerateDocxLayoutRouteWithChildren =
+  GenerateDocxLayoutRoute._addFileChildren(GenerateDocxLayoutRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  CreateDocumentLayoutRoute: CreateDocumentLayoutRouteWithChildren,
+  GenerateDocxLayoutRoute: GenerateDocxLayoutRouteWithChildren,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

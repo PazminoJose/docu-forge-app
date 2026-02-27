@@ -7,6 +7,8 @@ interface AppState {
 	setTemplateFilePath: (path: string) => void;
 	outputFolderPath: string;
 	setOutputFolderPath: (path: string) => void;
+	multipleTemplatesMode: boolean;
+	setMultipleTemplatesMode: (value: boolean) => void;
 }
 
 const initialState: AppState = {
@@ -16,6 +18,8 @@ const initialState: AppState = {
 	setTemplateFilePath: () => {},
 	outputFolderPath: "",
 	setOutputFolderPath: () => {},
+	multipleTemplatesMode: false,
+	setMultipleTemplatesMode: () => {},
 };
 
 export const useAppState = create<AppState>((set) => ({
@@ -23,4 +27,5 @@ export const useAppState = create<AppState>((set) => ({
 	setDataFilePath: (file) => set({ dataFilePath: file }),
 	setTemplateFilePath: (file) => set({ templateFilePath: file }),
 	setOutputFolderPath: (path) => set({ outputFolderPath: path }),
+	setMultipleTemplatesMode: (value) => set({ multipleTemplatesMode: value }),
 }));
