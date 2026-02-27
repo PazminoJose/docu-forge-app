@@ -8,9 +8,12 @@ dependencies = [
     "numpy>=2.2.6",
     "openpyxl>=3.1.5",
     "pandas>=2.3.3",
+    "pydantic>=2.12.5",
     "pyinstaller>=6.18.0",
     "python-docx>=1.2.0",
     "sanic>=25.12.0",
+    "sanic-ext>=25.12.0",
+    "setuptools>=70.1.0",
 ]
 
 [dependency-groups]
