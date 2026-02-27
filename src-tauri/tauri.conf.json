@@ -1,7 +1,7 @@
 {
 	"$schema": "https://schema.tauri.app/config/2",
 	"productName": "DocuForge",
-	"version": "0.1.5",
+	"version": "0.2.0",
 	"identifier": "docuforge",
 	"build": {
 		"beforeDevCommand": "pnpm dev",
@@ -41,7 +41,9 @@
 	"plugins": {
 		"updater": {
 			"pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDJENDM3Q0E5QUE0NkRGRDkKUldUWjMwYXFxWHhETFh2QXAyelVXaGlERXllRXc1VDFWamhYQ0xmTGJYT2M0Y1JqSXU4Q1FIVUQK",
-			"endpoints": ["https://github.com/PazminoJose/docu-forge-app/releases/latest/download/latest.json"]
+			"endpoints": [
+				"https://github.com/PazminoJose/docu-forge-app/releases/latest/download/latest.json"
+			]
 		}
 	}
 }
