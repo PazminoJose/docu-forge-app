@@ -39,5 +39,6 @@ jobs:
         with:
           tagName: v__VERSION__
           releaseName: "DocuForge v__VERSION__"
+          releaseBody: ${{ steps.release_notes.outputs.body }}
           releaseDraft: true
           prerelease: false
