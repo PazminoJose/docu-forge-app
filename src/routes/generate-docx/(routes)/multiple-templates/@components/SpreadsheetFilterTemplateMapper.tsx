@@ -37,7 +37,7 @@ const filterTemplateMapperSchema = z.object({
 					value: z.string(),
 				}),
 			),
-			templatePath: z.string(),
+			templatePath: z.string().optional(),
 		}),
 	),
 });
