@@ -10,9 +10,19 @@ pub async fn update(
         let dialog_buttons =
             MessageDialogButtons::OkCancelCustom("Actualizar".to_string(), "Luego".to_string());
 
+        let mut message = format!("Nueva versión {} disponible.\n", update.version);
+
+        if let Some(body) = &update.body {
+            if !body.is_empty() {
+                message.push_str(&format!("\nCambios:\n{}", body));
+            }
+        }
+
+        message.push_str("\n\n¿Deseas descargarla e instalarla ahora?");
+
         let confirmed = app
             .dialog()
-            .message("Hay una nueva versión disponible. ¿Deseas descargarla e instalarla ahora?")
+            .message(message)
             .title("Actualización encontrada")
             .buttons(dialog_buttons)
             .blocking_show();

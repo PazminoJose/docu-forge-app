@@ -11,6 +11,8 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -27,6 +29,23 @@ jobs:
 
       - name: Install Dependencies
         run: pnpm install
+
+      - name: Generate Release Notes
+        id: release_notes
+        shell: bash
+        run: |
+          # Get previous tag
+          PREV_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+          if [ -z "$PREV_TAG" ]; then
+            BODY=$(git log --pretty=format:"- %s" HEAD)
+          else
+            BODY=$(git log --pretty=format:"- %s" ${PREV_TAG}..HEAD)
+          fi
+          # Escape for GitHub Actions output
+          BODY="${BODY//'%'/'%25'}"
+          BODY="${BODY//$'\n'/'%0A'}"
+          BODY="${BODY//$'\r'/'%0D'}"
+          echo "body=$BODY" >> $GITHUB_OUTPUT
 
       - name: Build and Publish Tauri App
         uses: tauri-apps/tauri-action@dev
