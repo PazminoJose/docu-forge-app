@@ -355,9 +355,11 @@ async def process_multiple_docx(ws: Websocket):
 
             # 2. Preparación de Mapeos Rápidos
             # Creamos un diccionario: {(val_col_B, val_col_C): "path/to/template.docx"}
+            # Solo incluir mappings que tengan templatePath definido
             mapping_dict = {}
             for item in template_mappings:
-                # Ordenamos la combinación por letra de columna para asegurar consistencia
+                if not item.get('templatePath'):
+                    continue
                 combo_key = tuple(c['value'] for c in item['combination'])
                 mapping_dict[combo_key] = item['templatePath']
 
@@ -465,6 +467,13 @@ def _replace_cleanly(doc, old_text, new_text):
                     run.text = run.text.replace(old_text, new_text)
                     found = True
 
+    def process_paragraphs_from_element(element):
+        """Procesa todos los párrafos w:p dentro de un elemento XML."""
+        from docx.text.paragraph import Paragraph
+        for p_elem in element.findall(qn('w:p')):
+            p = Paragraph(p_elem, element)
+            process_p(p)
+
     for p in doc.paragraphs:
         process_p(p)
             
@@ -473,6 +482,19 @@ def _replace_cleanly(doc, old_text, new_text):
             for cell in row.cells:
                 for p in cell.paragraphs:
                     process_p(p)
+
+    # Buscar dentro de text boxes (wps:txbx y v:textbox > w:txbxContent)
+    WPS_NS = 'http://schemas.microsoft.com/office/word/2010/wordprocessingShape'
+    VML_NS = 'urn:schemas-microsoft-com:vml'
+    for txbx in doc.element.body.findall(f'.//{{{WPS_NS}}}txbx'):
+        txbx_content = txbx.find(qn('w:txbxContent'))
+        if txbx_content is not None:
+            process_paragraphs_from_element(txbx_content)
+    for vtb in doc.element.body.findall(f'.//{{{VML_NS}}}textbox'):
+        txbx_content = vtb.find(qn('w:txbxContent'))
+        if txbx_content is not None:
+            process_paragraphs_from_element(txbx_content)
+
     return found
 
 def _combine_runs(paragraph):
