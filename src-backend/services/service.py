@@ -76,6 +76,28 @@ def _extract_fields(path: str) -> list[str]:
         find_in_paragraphs(section.header.paragraphs)
         find_in_paragraphs(section.footer.paragraphs)
 
+    # 4. Text boxes (wps:txbx y v:textbox)
+    from docx.oxml.ns import qn
+    from docx.text.paragraph import Paragraph
+    WPS_NS = 'http://schemas.microsoft.com/office/word/2010/wordprocessingShape'
+    VML_NS = 'urn:schemas-microsoft-com:vml'
+    for txbx in doc.element.body.findall(f'.//{{{WPS_NS}}}txbx'):
+        txbx_content = txbx.find(qn('w:txbxContent'))
+        if txbx_content is not None:
+            for p_elem in txbx_content.findall(qn('w:p')):
+                p = Paragraph(p_elem, txbx_content)
+                matches = re.findall(regex, p.text)
+                for m in matches:
+                    placeholders.add(m)
+    for vtb in doc.element.body.findall(f'.//{{{VML_NS}}}textbox'):
+        txbx_content = vtb.find(qn('w:txbxContent'))
+        if txbx_content is not None:
+            for p_elem in txbx_content.findall(qn('w:p')):
+                p = Paragraph(p_elem, txbx_content)
+                matches = re.findall(regex, p.text)
+                for m in matches:
+                    placeholders.add(m)
+
     return list(placeholders)
 
 # async def get_mapper_data(request: Request):
