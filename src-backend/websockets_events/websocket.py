@@ -392,54 +392,52 @@ async def process_multiple_docx(ws: Websocket):
                 row_combo_tuple = tuple(current_row_combo)
 
                 # --- C. ¿Esta fila tiene una plantilla asignada? ---
-                if row_combo_tuple not in mapping_dict:
-                    continue # Saltar fila si no coincide con ninguna combinación
-
-                target_template = mapping_dict[row_combo_tuple]
-                
-                # --- D. Determinar Carpeta de Destino ---
-                final_output_folder = output_root
-                if folder_col_letter:
-                    subfolder_name = str(sheet.cell(row=row_idx, column=column_index_from_string(folder_col_letter)).value or "Sin_Nombre")
-                    # Limpiar nombre de carpeta de caracteres inválidos
-                    subfolder_name = "".join(c for c in subfolder_name if c.isalnum() or c in (' ', '_', '-')).strip()
-                    final_output_folder = os.path.join(output_root, subfolder_name)
-                
-                if not os.path.exists(final_output_folder):
-                    os.makedirs(final_output_folder, exist_ok=True)
-
-                # --- E. Procesar el Documento (Reutilizando tu lógica) ---
-                doc = Document(target_template)
-                was_modified = False
-                custom_filename = None
-
-                for field in fields:
-                    identifier = f"${{{field['identifier']}}}"
-                    col_letter = field.get('mappedToColumn')
+                if row_combo_tuple in mapping_dict:
+                    target_template = mapping_dict[row_combo_tuple]
                     
-                    if col_letter:
-                        val = sheet.cell(row=row_idx, column=column_index_from_string(col_letter)).value
-                    else:
-                        val = field.get('value', "")
+                    # --- D. Determinar Carpeta de Destino ---
+                    final_output_folder = output_root
+                    if folder_col_letter:
+                        subfolder_name = str(sheet.cell(row=row_idx, column=column_index_from_string(folder_col_letter)).value or "Sin_Nombre")
+                        # Limpiar nombre de carpeta de caracteres inválidos
+                        subfolder_name = "".join(c for c in subfolder_name if c.isalnum() or c in (' ', '_', '-')).strip()
+                        final_output_folder = os.path.join(output_root, subfolder_name)
+                    
+                    if not os.path.exists(final_output_folder):
+                        os.makedirs(final_output_folder, exist_ok=True)
 
-                    # Formateo
-                    if isinstance(val, (datetime)):
-                        replacement = val.strftime("%Y-%m-%d")
-                    else:
-                        replacement = str(val) if val is not None else ""
+                    # --- E. Procesar el Documento ---
+                    doc = Document(target_template)
+                    was_modified = False
+                    custom_filename = None
 
-                    if field.get('useAsName') and replacement.strip():
-                        custom_filename = "".join(c for c in replacement if c.isalnum() or c in (' ', '_', '-')).strip()
+                    for field in fields:
+                        identifier = f"${{{field['identifier']}}}"
+                        col_letter = field.get('mappedToColumn')
+                        
+                        if col_letter:
+                            val = sheet.cell(row=row_idx, column=column_index_from_string(col_letter)).value
+                        else:
+                            val = field.get('value', "")
 
-                    if _replace_cleanly(doc, identifier, replacement):
-                        was_modified = True
+                        # Formateo
+                        if isinstance(val, (datetime)):
+                            replacement = val.strftime("%Y-%m-%d")
+                        else:
+                            replacement = str(val) if val is not None else ""
 
-                # --- F. Guardar ---
-                if was_modified:
-                    fname = f"{custom_filename}.docx" if custom_filename else f"Fila_{row_idx}.docx"
-                    doc.save(os.path.join(final_output_folder, fname))
+                        if field.get('useAsName') and replacement.strip():
+                            custom_filename = "".join(c for c in replacement if c.isalnum() or c in (' ', '_', '-')).strip()
 
-                # --- G. Reportar Progreso ---
+                        if _replace_cleanly(doc, identifier, replacement):
+                            was_modified = True
+
+                    # --- F. Guardar ---
+                    if was_modified:
+                        fname = f"{custom_filename}.docx" if custom_filename else f"Fila_{row_idx}.docx"
+                        doc.save(os.path.join(final_output_folder, fname))
+
+                # --- G. Reportar Progreso (siempre, incluso si la fila fue saltada) ---
                 percent = int(((i + 1) / total_rows) * 100)
                 await ws.send(py_json.dumps({
                     "status": "progress",
