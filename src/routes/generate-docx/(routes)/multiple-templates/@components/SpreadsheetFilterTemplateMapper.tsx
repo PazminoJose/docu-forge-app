@@ -37,9 +37,7 @@ const filterTemplateMapperSchema = z.object({
 					value: z.string(),
 				}),
 			),
-			templatePath: z.string().refine((value) => value !== "", {
-				message: "Debe seleccionar una plantilla",
-			}),
+			templatePath: z.string(),
 		}),
 	),
 });
