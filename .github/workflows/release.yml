@@ -37,10 +37,12 @@ jobs:
           # Get previous tag
           PREV_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
           if [ -z "$PREV_TAG" ]; then
-            BODY=$(git log --pretty=format:"- %s" HEAD)
+            BODY=$(git log --pretty=format:"%b" HEAD)
           else
-            BODY=$(git log --pretty=format:"- %s" ${PREV_TAG}..HEAD)
+            BODY=$(git log --pretty=format:"%b" ${PREV_TAG}..HEAD)
           fi
+          # Remove empty lines
+          BODY=$(echo "$BODY" | sed '/^$/d')
           # Escape for GitHub Actions output
           BODY="${BODY//'%'/'%25'}"
           BODY="${BODY//$'\n'/'%0A'}"
