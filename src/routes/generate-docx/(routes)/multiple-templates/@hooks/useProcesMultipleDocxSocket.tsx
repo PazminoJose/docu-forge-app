@@ -57,11 +57,11 @@ export default function useProcessMultipleDocxSocket() {
 	};
 
 	function cancelProcess() {
+		setProgress(0);
+		setLoading(false);
+		toast.warning("Proceso cancelado por el usuario");
 		if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
-			setProgress(0);
-			setLoading(false);
 			socketRef.current.close();
-			toast.warning("Proceso cancelado por el usuario");
 			socketRef.current = null;
 		}
 	}
