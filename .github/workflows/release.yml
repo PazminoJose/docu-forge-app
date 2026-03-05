@@ -43,11 +43,10 @@ jobs:
           fi
           # Remove empty lines
           BODY=$(echo "$BODY" | sed '/^$/d')
-          # Escape for GitHub Actions output
-          BODY="${BODY//'%'/'%25'}"
-          BODY="${BODY//$'\n'/'%0A'}"
-          BODY="${BODY//$'\r'/'%0D'}"
-          echo "body=$BODY" >> $GITHUB_OUTPUT
+          # Use delimiter syntax for multiline output
+          echo "body<<EOF" >> $GITHUB_OUTPUT
+          echo "$BODY" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
 
       - name: Build and Publish Tauri App
         uses: tauri-apps/tauri-action@dev
