@@ -87,8 +87,8 @@ export default function SpreadsheetMapper({
 			<Loader size="lg" />
 		</div>
 	) : (
-		<div className="flex h-full max-h-[75vh] flex-col">
-			<Alert mb="md" color="yellow" icon={<IconInfoCircle />}>
+		<div className="flex h-full max-h-[75vh] flex-col gap-2">
+			<Alert color="yellow" className="shrink-0" icon={<IconInfoCircle />}>
 				Si seleccionas diferentes hojas para cada campo asegúrate que tengan el
 				mismo tamaño configurado en la sección de rango, si no podrías obtener
 				resultados inesperados o errores durante el proceso de generación.
