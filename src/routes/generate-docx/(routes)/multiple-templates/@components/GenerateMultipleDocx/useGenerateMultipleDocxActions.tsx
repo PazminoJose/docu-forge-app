@@ -137,7 +137,9 @@ export default function useGenerateMultipleDocxActions() {
 
 	const handleSelectTemplates = (mapping: TemplateMapping[]) => {
 		if (mapping && mapping.length > 0) {
-			setTemplateFilePath(mapping[0].templatePath);
+			const selectedTemplate =
+				mapping.find((m) => m.templatePath)?.templatePath || "";
+			setTemplateFilePath(selectedTemplate);
 			form.setFieldValue("templateMapping", mapping);
 		}
 	};

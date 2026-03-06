@@ -19,7 +19,7 @@ type UniqueCombination = { column: string; value: string }[];
 
 export type TemplateMapping = {
 	combination: UniqueCombination;
-	templatePath: string;
+	templatePath?: string;
 };
 
 interface Props {
@@ -137,9 +137,9 @@ export default function SpreadsheetFilterTemplateMapper({
 	) : (
 		<form
 			onSubmit={form.onSubmit(handleSubmit)}
-			className="flex h-full max-h-[75vh] flex-col"
+			className="flex h-full max-h-[75vh] flex-col gap-2"
 		>
-			<Alert mb="md" color="yellow" icon={<IconInfoCircle />}>
+			<Alert color="yellow" className="shrink-0" icon={<IconInfoCircle />}>
 				Selecciona solo plantillas con campos iguales
 			</Alert>
 			<div className="flex-1 overflow-auto">
