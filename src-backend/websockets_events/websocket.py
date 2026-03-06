@@ -455,7 +455,8 @@ async def process_multiple_docx(ws: Websocket):
 
 def _replace_cleanly(doc, old_text, new_text):
     found = False
-    # Función auxiliar para procesar párrafos de forma uniforme
+    from docx.text.paragraph import Paragraph
+
     def process_p(p):
         nonlocal found
         if old_text in p.text:
@@ -465,33 +466,23 @@ def _replace_cleanly(doc, old_text, new_text):
                     run.text = run.text.replace(old_text, new_text)
                     found = True
 
-    def process_paragraphs_from_element(element):
-        """Procesa todos los párrafos w:p dentro de un elemento XML."""
-        from docx.text.paragraph import Paragraph
-        for p_elem in element.findall(qn('w:p')):
-            p = Paragraph(p_elem, element)
+    def process_all_paragraphs_in(root_element):
+        """Busca TODOS los w:p recursivamente en el árbol XML.
+        Cubre: párrafos, tablas (anidadas), text boxes, SDTs, etc."""
+        for p_elem in root_element.iter(qn('w:p')):
+            p = Paragraph(p_elem, p_elem.getparent())
             process_p(p)
 
-    for p in doc.paragraphs:
-        process_p(p)
-            
-    for table in doc.tables:
-        for row in table.rows:
-            for cell in row.cells:
-                for p in cell.paragraphs:
-                    process_p(p)
+    # 1. Body completo (párrafos, tablas anidadas, text boxes WPS/VML, SDTs, etc.)
+    process_all_paragraphs_in(doc.element.body)
 
-    # Buscar dentro de text boxes (wps:txbx y v:textbox > w:txbxContent)
-    WPS_NS = 'http://schemas.microsoft.com/office/word/2010/wordprocessingShape'
-    VML_NS = 'urn:schemas-microsoft-com:vml'
-    for txbx in doc.element.body.findall(f'.//{{{WPS_NS}}}txbx'):
-        txbx_content = txbx.find(qn('w:txbxContent'))
-        if txbx_content is not None:
-            process_paragraphs_from_element(txbx_content)
-    for vtb in doc.element.body.findall(f'.//{{{VML_NS}}}textbox'):
-        txbx_content = vtb.find(qn('w:txbxContent'))
-        if txbx_content is not None:
-            process_paragraphs_from_element(txbx_content)
+    # 2. Headers, footers, footnotes, endnotes (son partes XML separadas)
+    for rel in doc.part.rels.values():
+        if any(k in rel.reltype for k in ('header', 'footer', 'footnotes', 'endnotes')):
+            try:
+                process_all_paragraphs_in(rel.target_part.element)
+            except Exception:
+                pass
 
     return found
 

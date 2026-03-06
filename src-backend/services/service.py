@@ -51,52 +51,35 @@ async def get_docx_fields(request: Request):
         return json({"error": str(e)}, status=500)
     
 def _extract_fields(path: str) -> list[str]:
-    doc = Document(path)
+    try:
+        doc = Document(path)
+    except Exception:
+        return []
     placeholders = set()
     regex = r"\$\{([^}]+)\}"
 
-    # Search for matches in a list of paragraphs 
-    def find_in_paragraphs(paragraphs):
-        for p in paragraphs:
+    from docx.oxml.ns import qn
+    from docx.text.paragraph import Paragraph
+
+    def find_in_all_paragraphs(root_element):
+        """Busca TODOS los w:p recursivamente en el árbol XML.
+        Cubre: párrafos, tablas (anidadas), text boxes, SDTs, etc."""
+        for p_elem in root_element.iter(qn('w:p')):
+            p = Paragraph(p_elem, p_elem.getparent())
             matches = re.findall(regex, p.text)
             for m in matches:
                 placeholders.add(m)
 
-    # 1. Main body paragraphs
-    find_in_paragraphs(doc.paragraphs)
+    # 1. Body completo (párrafos, tablas anidadas, text boxes WPS/VML, SDTs, etc.)
+    find_in_all_paragraphs(doc.element.body)
 
-    # 2. Tables paragraphs
-    for table in doc.tables:
-        for row in table.rows:
-            for cell in row.cells:
-                find_in_paragraphs(cell.paragraphs)
-                
-    # 3. Headers and footers paragraphs
-    for section in doc.sections:
-        find_in_paragraphs(section.header.paragraphs)
-        find_in_paragraphs(section.footer.paragraphs)
-
-    # 4. Text boxes (wps:txbx y v:textbox)
-    from docx.oxml.ns import qn
-    from docx.text.paragraph import Paragraph
-    WPS_NS = 'http://schemas.microsoft.com/office/word/2010/wordprocessingShape'
-    VML_NS = 'urn:schemas-microsoft-com:vml'
-    for txbx in doc.element.body.findall(f'.//{{{WPS_NS}}}txbx'):
-        txbx_content = txbx.find(qn('w:txbxContent'))
-        if txbx_content is not None:
-            for p_elem in txbx_content.findall(qn('w:p')):
-                p = Paragraph(p_elem, txbx_content)
-                matches = re.findall(regex, p.text)
-                for m in matches:
-                    placeholders.add(m)
-    for vtb in doc.element.body.findall(f'.//{{{VML_NS}}}textbox'):
-        txbx_content = vtb.find(qn('w:txbxContent'))
-        if txbx_content is not None:
-            for p_elem in txbx_content.findall(qn('w:p')):
-                p = Paragraph(p_elem, txbx_content)
-                matches = re.findall(regex, p.text)
-                for m in matches:
-                    placeholders.add(m)
+    # 2. Headers, footers, footnotes, endnotes (son partes XML separadas)
+    for rel in doc.part.rels.values():
+        if any(k in rel.reltype for k in ('header', 'footer', 'footnotes', 'endnotes')):
+            try:
+                find_in_all_paragraphs(rel.target_part.element)
+            except Exception:
+                pass
 
     return list(placeholders)
 
